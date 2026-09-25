@@ -1,0 +1,121 @@
+<?php
+
+namespace App\View\Composers;
+
+use App\Enums\ClientStatus;
+use App\Enums\DocumentFolder;
+use App\Enums\DocumentSource;
+use App\Enums\TaskPriority;
+use App\Enums\TaskStatus;
+use App\Enums\UserRole;
+use App\Models\Client;
+use App\Models\Task;
+use App\Models\User;
+use App\Models\Workspace;
+use App\Services\DateTime\DateTimePreferenceService;
+use Illuminate\Support\ViewErrorBag;
+use Illuminate\View\View;
+
+/**
+ * Builds window.__BOUGH_APP__, the bootstrap payload for the React shell.
+ */
+class PortalComposer
+{
+    public function __construct(private DateTimePreferenceService $dates) {}
+
+    public function compose(View $view): void
+    {
+        $data = $view->getData();
+        $user = request()->user();
+        $workspace = $data['workspace'] ?? null;
+        $businessWorkspace = $workspace ?? $user?->workspace;
+
+        /** @var ViewErrorBag $errors */
+        $errors = view()->shared('errors', new ViewErrorBag);
+
+        $view->with('boughPayload', [
+            'page' => $data['page'] ?? 'welcome',
+            'section' => $data['section'] ?? null,
+            'user' => $user ? $this->user($user) : null,
+            'workspace' => $workspace ? $this->workspace($workspace) : null,
+            'abilities' => $user ? $this->abilities($user, $workspace, $data['section'] ?? null) : [],
+            'options' => $this->options(),
+            'datePreferences' => $this->dates->resolveWithSources($user, $workspace),
+            'datePreferenceOptions' => $this->dates->options($user, $workspace),
+            'workspaceDatePreferences' => $this->dates->workspaceRawPreferences($businessWorkspace),
+            'workspaceBusinessDatePreferences' => $this->dates->workspaceBusinessPreferences($businessWorkspace),
+            'userDatePreferences' => $this->dates->userRawPreferences($user),
+            'csrf' => csrf_token(),
+            'errors' => $errors->toArray(),
+            'old' => session()->getOldInput(),
+            'status' => session('status'),
+            'resetToken' => $data['resetToken'] ?? null,
+            'resetEmail' => $data['resetEmail'] ?? null,
+            'pageData' => $data['pageData'] ?? [],
+        ]);
+    }
+
+    private function user(User $user): array
+    {
+        return [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => $user->role->value,
+            'avatar_url' => $user->avatar_url,
+            'timezone' => $user->timezone,
+            'date_format' => $user->date_format,
+            'datetime_format' => $user->datetime_format,
+            'workspace' => $user->workspace ? $this->workspace($user->workspace) : null,
+        ];
+    }
+
+    private function workspace(Workspace $workspace): array
+    {
+        return [
+            'id' => $workspace->id,
+            'name' => $workspace->name,
+            'slug' => $workspace->slug,
+            'logo_url' => $workspace->logo_url,
+            'primary_colour' => $workspace->primary_colour,
+            'accent_colour' => $workspace->accent_colour,
+        ];
+    }
+
+    /**
+     * Page-level abilities for showing or hiding controls. The server still
+     * authorizes every request; these flags only shape the UI.
+     */
+    private function abilities(User $user, ?Workspace $workspace, ?string $section): array
+    {
+        if ($section === 'admin') {
+            return ['*' => $user->isSuperAdmin()];
+        }
+
+        if (! $workspace) {
+            return [];
+        }
+
+        return [
+            'clients.create' => $user->can('create', [Client::class, $workspace]),
+            'tasks.create' => $user->can('create', [Task::class, $workspace]),
+            'documents.create' => $user->role->canManageTasks(),
+            'team.manage' => $user->can('viewAny', [User::class, $workspace]),
+            'settings.update' => $user->can('updateSettings', $workspace),
+            'activity.view' => $user->can('viewActivity', $workspace),
+        ];
+    }
+
+    private function options(): array
+    {
+        return [
+            'client_statuses' => ClientStatus::options(),
+            'task_statuses' => TaskStatus::options(),
+            'task_priorities' => TaskPriority::options(),
+            'document_folders' => DocumentFolder::options(),
+            'document_sources' => DocumentSource::options(),
+            'roles' => UserRole::options(),
+            'workspace_roles' => array_map(fn (UserRole $role) => ['value' => $role->value, 'label' => $role->label()], UserRole::workspaceRoles()),
+        ];
+    }
+}

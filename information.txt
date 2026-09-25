@@ -1,0 +1,2345 @@
+# Bough Digital Platform — Laravel MVC + Workspace SaaS + REST API + MCP
+
+Build a new production-ready **Bough Digital management platform** using Laravel.
+
+This is not a prototype, static dashboard, or collection of disconnected pages. Build it as a properly structured, maintainable Laravel application following conventional Laravel MVC architecture, service-layer separation, policies, validation, queues, and tests.
+
+The application will combine all of the following in **one Laravel codebase**:
+
+* Workspace-based multi-tenancy
+* Super Admin management
+* Workspace administration
+* Team/user management
+* Client management
+* SEO and content management
+* Outreach management
+* Tasks and time tracking
+* Reporting
+* Google integrations
+* HubSpot integration
+* Semrush integration
+* Screaming Frog data/workflows
+* S3 storage
+* REST API for the portal frontend
+* MCP Server for Claude/AI access
+* Background queue workers
+* Scheduled automation
+* Audit/activity logging
+
+The primary application domain will eventually be:
+
+```text
+https://portal.boughdigital.com
+```
+
+Workspace routes should follow the structure:
+
+```text
+/{workspace}/...
+```
+
+Examples:
+
+```text
+/bough/dashboard
+/bough/clients
+/bough/content
+/bough/tasks
+/bough/reports
+
+/bough/api/clients
+/bough/api/tasks
+
+/mcp/bough
+```
+
+Do not build separate Laravel applications for the Portal, API, and MCP.
+
+They must all be part of the same application and share the same:
+
+* Models
+* Services
+* Authorization policies
+* Validation rules
+* Workspace resolver
+* Database
+* Integrations
+* Activity logging
+
+---
+
+# 1. Required Technology Stack
+
+Use:
+
+```text
+Laravel
+PHP 8.3+
+PostgreSQL
+Redis
+Laravel Queue
+Laravel Horizon
+Laravel Scheduler
+Laravel MCP
+React
+Tailwind CSS
+Vite
+S3-compatible storage
+```
+
+Use current stable versions compatible with the selected Laravel version.
+
+Install and configure Laravel MCP using:
+
+```bash
+composer require laravel/mcp
+```
+
+Do not use Node.js as the application backend.
+
+Node/npm may only be used for normal frontend build tooling such as:
+
+```text
+Vite
+React
+Tailwind
+```
+
+The backend, MCP server, API, queue jobs, scheduling, authentication, authorization, and business logic must remain Laravel/PHP.
+
+---
+
+# 2. Architecture Requirement — Standard Laravel MVC
+
+Use proper Laravel MVC.
+
+Do not implement the entire application using route closures.
+
+Do not put significant business logic inside React components, Blade files, MCP tool classes, controllers, or routes.
+
+Use a structure similar to:
+
+```text
+app/
+├── Console/
+├── Enums/
+├── Exceptions/
+├── Http/
+│   ├── Controllers/
+│   │   ├── Admin/
+│   │   ├── Workspace/
+│   │   └── Api/
+│   ├── Middleware/
+│   ├── Requests/
+│   └── Resources/
+│
+├── Jobs/
+├── Mcp/
+│   ├── Servers/
+│   ├── Tools/
+│   ├── Resources/
+│   └── Prompts/
+│
+├── Models/
+├── Notifications/
+├── Policies/
+├── Providers/
+├── Repositories/       # only where genuinely useful
+├── Services/
+│   ├── Clients/
+│   ├── Google/
+│   ├── HubSpot/
+│   ├── Semrush/
+│   ├── ScreamingFrog/
+│   ├── Reports/
+│   ├── Outreach/
+│   └── Content/
+└── Support/
+```
+
+Routes should be separated cleanly:
+
+```text
+routes/web.php
+routes/api.php
+routes/ai.php
+routes/console.php
+```
+
+Use controllers for web/API operations.
+
+Use MCP classes only as an interface into the application's service layer.
+
+---
+
+# 3. Core Architecture Principle
+
+There must be ONE business/service layer.
+
+For example:
+
+```text
+React Portal
+     ↓
+REST Controller
+     ↓
+ClientService
+     ↓
+Database
+```
+
+and:
+
+```text
+Claude
+     ↓
+MCP Tool
+     ↓
+ClientService
+     ↓
+Database
+```
+
+and:
+
+```text
+Queue Job
+     ↓
+ClientService / IntegrationService
+     ↓
+Database/API
+```
+
+Do NOT duplicate business logic separately for REST, MCP, and queue jobs.
+
+Example:
+
+```text
+ClientService
+ReportService
+TaskService
+ContentService
+GoogleService
+HubSpotService
+SemrushService
+ScreamingFrogService
+OutreachService
+```
+
+should be reusable by all application interfaces.
+
+---
+
+# 4. Workspace is the Main Tenant
+
+The fundamental tenant entity is:
+
+```text
+Workspace
+```
+
+Everything belongs either directly or indirectly to a workspace.
+
+Example hierarchy:
+
+```text
+Platform
+│
+├── Workspace A
+│   ├── Users
+│   ├── Clients
+│   │   ├── Contacts
+│   │   ├── Integrations
+│   │   ├── Documents
+│   │   ├── Content
+│   │   ├── SEO Data
+│   │   ├── Reports
+│   │   └── Tasks
+│   ├── Outreach
+│   ├── Templates
+│   └── Settings
+│
+└── Workspace B
+    └── completely isolated data
+```
+
+Workspace isolation is a critical security requirement.
+
+A user from Workspace A must NEVER access Workspace B data by:
+
+* URL manipulation
+* REST API
+* MCP
+* IDs submitted manually
+* route model binding
+* background jobs
+* exports
+* reports
+
+Do not rely only on hiding menu items.
+
+Enforce workspace isolation server-side.
+
+---
+
+# 5. Workspace URL Resolution
+
+Use URLs like:
+
+```text
+/{workspace}/dashboard
+/{workspace}/clients
+/{workspace}/tasks
+/{workspace}/reports
+/{workspace}/api/...
+/mcp/{workspace}
+```
+
+The `{workspace}` parameter should normally use:
+
+```text
+workspaces.slug
+```
+
+Example:
+
+```text
+/bough/dashboard
+```
+
+Create middleware such as:
+
+```text
+ResolveWorkspace
+EnsureWorkspaceAccess
+```
+
+The middleware should:
+
+1. Resolve workspace by slug.
+2. Store the workspace in request/application context.
+3. Verify the authenticated user is allowed to access it.
+4. Reject cross-workspace access.
+5. Make the workspace available to controllers, policies, services and MCP.
+
+Do not trust `workspace_id` sent by frontend forms.
+
+The active workspace must come from trusted application context.
+
+---
+
+# 6. User Roles
+
+Initial roles:
+
+```text
+super_admin
+admin
+team_leader
+employee
+writer
+va
+```
+
+Implement these using a maintainable role/permission architecture.
+
+Do not scatter:
+
+```php
+if ($user->role === 'admin')
+```
+
+throughout the application.
+
+Use:
+
+* Enums where appropriate
+* Policies
+* Gates
+* Middleware
+* Permission service if required
+
+---
+
+# 7. Super Admin Rules
+
+`super_admin` is PLATFORM LEVEL.
+
+Super Admin can:
+
+* Access global admin dashboard
+* Create workspaces
+* Edit workspaces
+* Activate/deactivate workspaces
+* View all workspaces
+* Enter/view any workspace
+* Manage workspace administrators
+* View global system health
+* View global activity logs
+* View integration status
+* Manage global settings
+* Manage system-level MCP configuration
+* Review queues/jobs
+* Review failures
+* Review application errors
+
+Super Admin is the ONLY normal role allowed to:
+
+```text
+create workspace
+edit workspace
+delete/archive workspace
+change workspace ownership
+manage global platform settings
+```
+
+Super Admin routes should be separated clearly, for example:
+
+```text
+/admin
+/admin/workspaces
+/admin/users
+/admin/system
+/admin/activity
+```
+
+Do not require a workspace slug for platform administration.
+
+---
+
+# 8. Workspace Admin Rules
+
+`admin` is WORKSPACE LEVEL.
+
+Workspace Admin can manage almost everything inside their own workspace, including:
+
+* Workspace users
+* Team leaders
+* Employees
+* Writers
+* VAs
+* Clients
+* Client contacts
+* Client integrations
+* Content
+* Tasks
+* Reports
+* Outreach
+* Templates
+* Workspace settings that are explicitly editable
+
+BUT:
+
+**Workspace Admin must NOT manage the Workspace entity itself.**
+
+They cannot:
+
+* Create workspaces
+* Delete workspaces
+* Change workspace slug
+* Transfer workspace ownership
+* Access another workspace
+* Change platform-level configuration
+* Promote themselves to Super Admin
+* Create Super Admin accounts
+
+This distinction is mandatory.
+
+---
+
+# 9. Team Leader
+
+`team_leader` should operate only inside their workspace.
+
+Initial expected capabilities:
+
+* View permitted clients
+* Manage assigned team members where permitted
+* View/update content
+* Manage tasks
+* Assign writers
+* Review reports
+* View client data according to permissions
+* View team performance
+
+Do not allow Team Leaders to:
+
+* Manage workspace
+* Manage platform configuration
+* Create Super Admin
+* Access other workspaces
+
+---
+
+# 10. Employee
+
+Employee capabilities should be permission controlled.
+
+Typical abilities:
+
+* View assigned clients
+* View/update assigned tasks
+* Work with content
+* View relevant reports
+* Add time entries
+* Use approved tools/integrations
+
+---
+
+# 11. Writer
+
+Writer access should be restrictive.
+
+Typical access:
+
+```text
+My Articles
+My Assigned Content
+Content Brief
+Google Doc Link
+AI Score
+AI Feedback
+Pathway to 100
+Submission Status
+```
+
+Writer must not automatically see:
+
+* Financial data
+* Retainers
+* SMTP credentials
+* Integration secrets
+* Other writers' private information
+* Workspace administration
+
+---
+
+# 12. VA
+
+VA access should similarly be controlled.
+
+Typical access:
+
+```text
+Assigned Tasks
+Outreach
+Contact Research
+Link Building
+Time Entries
+Relevant Client Data
+```
+
+Do not give VA unrestricted workspace access.
+
+---
+
+# 13. Client-Level User Access
+
+Support:
+
+```text
+user_client_access
+```
+
+so non-admin users may be limited to specific clients.
+
+Example:
+
+```text
+Rebecca
+Workspace: Bough
+
+Allowed clients:
+- Client A
+- Client C
+
+Not allowed:
+- Client B
+- Client D
+```
+
+Policies must enforce this.
+
+Workspace membership alone does not automatically mean every non-admin user can access every client.
+
+---
+
+# 14. Database
+
+Use PostgreSQL.
+
+Preserve the supplied database specification as the initial source of truth.
+
+However, review it carefully before migrations are generated.
+
+Correct:
+
+* missing foreign keys
+* missing indexes
+* unsafe nullable assumptions
+* inconsistent timestamps
+* missing `updated_at`
+* missing unique constraints
+* tenant isolation weaknesses
+
+Do not silently remove fields.
+
+Document proposed schema corrections before applying major deviations.
+
+---
+
+# 15. Core Tables
+
+Implement the provided schema, including these domains.
+
+## Workspaces
+
+```text
+workspaces
+```
+
+Fields include:
+
+```text
+id
+name
+slug
+logo_url
+primary_colour
+accent_colour
+settings JSONB
+created_at
+updated_at
+```
+
+Add appropriate unique constraint on:
+
+```text
+slug
+```
+
+---
+
+# 16. Users
+
+Use Laravel-standard password handling.
+
+Do not literally implement a custom raw `password_hash` workflow if Laravel's standard `password` column/model behavior is more appropriate.
+
+Users contain:
+
+```text
+workspace_id
+email
+password
+name
+role
+avatar_url
+is_active
+last_login
+timestamps
+```
+
+Special handling:
+
+A Super Admin may be platform-scoped and therefore should be allowed to have:
+
+```text
+workspace_id = NULL
+```
+
+Normal workspace users must belong to a workspace.
+
+---
+
+# 17. Client Domain
+
+Implement:
+
+```text
+clients
+client_contacts
+client_integrations
+client_competitors
+ai_agent_configs
+content_pillars
+```
+
+A client belongs to one workspace.
+
+All client child records must inherit the client's workspace security boundary even if the child table itself does not contain `workspace_id`.
+
+Never retrieve a child record without verifying its parent client belongs to the active workspace.
+
+---
+
+# 18. Client Integrations
+
+Support integration records for:
+
+```text
+ga4
+gsc
+google_ads
+semrush
+facebook
+instagram
+linkedin
+hubspot
+google_drive
+gmail
+other
+```
+
+Do not store API credentials as plaintext.
+
+Use application encryption.
+
+Secrets must never appear in:
+
+* API responses
+* React state unnecessarily
+* MCP tool responses
+* activity logs
+* exception messages
+
+Provide:
+
+```text
+Connect
+Disconnect
+Verify
+Refresh
+Last Verified
+Connection Status
+```
+
+---
+
+# 19. Content Management
+
+Implement:
+
+```text
+content_pillars
+content_calendar_entries
+articles
+writer_profiles
+```
+
+Content calendar must support statuses:
+
+```text
+proposed
+to_do
+ready_to_write
+in_progress
+finalised
+published
+edits_required
+```
+
+Support:
+
+* primary keyword
+* secondary keywords
+* volume
+* difficulty
+* content type
+* pillar
+* persona
+* funnel stage
+* word targets
+* writer assignment
+* Google Doc
+* published URL
+* Surfer URL
+* Semrush URL
+* target/published date
+* metadata
+* FAQ
+* schema markup
+* internal linking
+* GA4 metrics
+* GSC metrics
+* Semrush metrics
+
+---
+
+# 20. Articles and Quality Scoring
+
+Support article quality scoring:
+
+```text
+ai_score_total
+ai_score_structure
+ai_score_grammar
+ai_score_eeat
+ai_score_uniqueness
+ai_score_brief
+human_score
+ai_feedback
+pathway_to_100
+```
+
+Do not put AI scoring logic directly into controllers.
+
+Create a dedicated service such as:
+
+```text
+ArticleScoringService
+```
+
+Make the implementation provider-independent where possible.
+
+---
+
+# 21. Screaming Frog
+
+Support:
+
+```text
+crawl_uploads
+```
+
+The first implementation may support importing Screaming Frog exports.
+
+Design the service layer so automated CLI crawling can be added later.
+
+Use:
+
+```text
+ScreamingFrogService
+```
+
+and queue long-running work.
+
+Never launch a large crawl synchronously from an MCP/HTTP request.
+
+Correct flow:
+
+```text
+start_screaming_frog_crawl
+        ↓
+Queue Job
+        ↓
+Screaming Frog
+        ↓
+Store result
+        ↓
+Return/update job status
+```
+
+MCP should be able to start a job and check its status separately.
+
+---
+
+# 22. Semrush
+
+Implement:
+
+```text
+semrush_snapshots
+keywords
+semrush_cache
+```
+
+Create:
+
+```text
+SemrushService
+```
+
+Responsibilities:
+
+* API authentication
+* domain analytics
+* keyword information
+* competitor data
+* monthly snapshots
+* caching
+* rate-limit handling
+* retry handling
+* raw-response storage when required
+
+Do not call Semrush directly from controllers or MCP tools.
+
+---
+
+# 23. Outreach
+
+Implement the supplied outreach subsystem:
+
+```text
+outreach_contacts
+outreach_campaigns
+outreach_campaign_contacts
+outreach_emails
+outreach_templates
+outreach_sequences
+outreach_sequence_steps
+outreach_smtp_accounts
+outreach_blacklist
+link_building_records
+```
+
+Respect:
+
+* Workspace isolation
+* Daily send limits
+* Blacklists
+* Do-not-contact
+* Sending windows
+* Timezones
+* Campaign state
+* Email approval state
+
+Sending emails must happen through queued jobs.
+
+Do not send large campaigns synchronously.
+
+---
+
+# 24. Tasks and Time Tracking
+
+Implement:
+
+```text
+task_categories
+tasks
+time_entries
+retainer_settings
+```
+
+Task statuses:
+
+```text
+backlog
+next_up
+in_progress
+completed
+on_hold
+```
+
+Task sources:
+
+```text
+manual
+screaming_frog
+keyword_mapping
+ai
+```
+
+Support:
+
+* assignment
+* priority
+* due dates
+* estimated hours
+* actual time entries
+* task category
+* source tracking
+* client relation
+
+---
+
+# 25. Prompt Templates
+
+Implement:
+
+```text
+prompt_templates
+```
+
+Support:
+
+```text
+blog
+comparison
+strategy
+audit
+quality_check
+calendar
+outreach
+proposal
+report
+```
+
+Support templated variables through:
+
+```text
+{{variable}}
+```
+
+Validate required variables before execution.
+
+---
+
+# 26. Reports
+
+Implement:
+
+```text
+report_templates
+generated_reports
+```
+
+Support output formats:
+
+```text
+google_doc
+word
+pdf
+```
+
+Generated reports should support:
+
+* Selected report template
+* Selected sections
+* Required data
+* Generating user
+* Client
+* Output URL
+* Generation status
+* Failure information
+* timestamps
+
+If the source schema lacks fields needed for asynchronous generation, propose and add them carefully.
+
+Examples:
+
+```text
+status
+started_at
+completed_at
+failed_at
+error_message
+```
+
+---
+
+# 27. Document Library
+
+Create a structured client document library.
+
+A client should be able to have many documents.
+
+Example:
+
+```text
+Client
+└── Documents
+    ├── SEO
+    ├── Strategy
+    ├── Content
+    ├── Reports
+    └── Other
+```
+
+Add a `documents` table if it is not already present in the supplied schema.
+
+Suggested fields:
+
+```text
+id
+workspace_id
+client_id
+title
+document_type
+folder
+provider
+external_id nullable
+google_doc_url nullable
+s3_url nullable
+metadata JSONB nullable
+created_by
+created_at
+updated_at
+```
+
+The MCP tool:
+
+```text
+link_google_doc
+```
+
+must associate ONE Google document with ONE client library record.
+
+Expected inputs:
+
+```text
+client_id
+title
+google_doc_url
+folder
+document_type
+```
+
+Do not interpret this as synchronizing the entire Google Drive unless a separate requirement explicitly says so.
+
+---
+
+# 28. Google Integration
+
+Create services such as:
+
+```text
+GoogleDriveService
+GoogleDocsService
+GoogleAnalyticsService
+GoogleSearchConsoleService
+GoogleAdsService
+GmailService
+```
+
+Keep them behind an integration/service layer.
+
+Potential operations:
+
+```text
+link Google Doc
+create Google Doc
+read permitted Google Doc
+write/update permitted Google Doc
+retrieve GA4 data
+retrieve Search Console data
+send email via Gmail
+monitor inbox where configured
+```
+
+Implement only operations required by the brief, but structure services so additional tools can be added cleanly.
+
+---
+
+# 29. HubSpot Integration
+
+Create:
+
+```text
+HubSpotService
+```
+
+Possible responsibilities:
+
+```text
+search contacts
+read contacts
+create/update contacts
+read companies
+read deals
+create/update deals
+association handling
+webhook handling
+```
+
+Never expose unrestricted HubSpot requests directly to MCP.
+
+MCP must call explicit business tools.
+
+Bad:
+
+```text
+hubspot_request(url, method, body)
+```
+
+Good:
+
+```text
+find_hubspot_contact
+get_hubspot_deal
+update_hubspot_contact
+```
+
+---
+
+# 30. REST API
+
+Build a proper REST API for the React portal.
+
+Example:
+
+```text
+/{workspace}/api/clients
+/{workspace}/api/clients/{client}
+/{workspace}/api/tasks
+/{workspace}/api/content
+/{workspace}/api/reports
+```
+
+Use:
+
+* API Resources
+* Form Requests
+* Policies
+* pagination
+* filtering
+* sorting
+* consistent errors
+
+Do not expose raw Eloquent models blindly.
+
+Use a standard response structure where useful.
+
+---
+
+# 31. MCP Server
+
+Use Laravel MCP.
+
+Expose the workspace MCP server at:
+
+```text
+/mcp/{workspace}
+```
+
+Example:
+
+```text
+https://portal.boughdigital.com/mcp/bough
+```
+
+The workspace MCP endpoint belongs to the same Laravel application.
+
+Do NOT build a second Node MCP server.
+
+---
+
+# 32. MCP Authentication
+
+MCP must require authentication.
+
+Never create a public unrestricted MCP endpoint.
+
+Design authentication so each MCP request resolves:
+
+```text
+Authenticated user
+        ↓
+Workspace
+        ↓
+Role
+        ↓
+Permissions
+        ↓
+Allowed MCP tool
+```
+
+Use an authentication mechanism supported cleanly by Laravel MCP.
+
+OAuth may be introduced where required by external MCP clients.
+
+During internal development, token authentication may be used if appropriate, but do not hardcode permanent secrets.
+
+---
+
+# 33. MCP Authorization
+
+Every MCP tool must perform server-side authorization.
+
+Do not assume:
+
+```text
+Authenticated = allowed
+```
+
+Check:
+
+```text
+user
+workspace
+client access
+permission
+requested operation
+```
+
+Example:
+
+```text
+Robert
+ ↓
+MCP
+ ↓
+update_client
+ ↓
+Workspace check
+ ↓
+Policy
+ ↓
+ClientService
+```
+
+Super Admin may cross workspace boundaries only through explicitly authorized platform actions.
+
+Workspace Admin cannot use MCP to bypass the rule preventing workspace management.
+
+---
+
+# 34. MCP Tool Design
+
+MCP tools must represent business actions.
+
+Good examples:
+
+```text
+list_clients
+search_clients
+get_client
+create_client
+update_client
+
+list_client_contacts
+create_client_contact
+
+list_client_documents
+link_google_doc
+
+list_tasks
+create_task
+assign_task
+complete_task
+
+get_content_calendar
+create_calendar_entry
+assign_writer
+
+get_semrush_snapshot
+refresh_semrush_data
+
+upload_screaming_frog_crawl
+start_screaming_frog_crawl
+get_crawl_status
+
+generate_report
+get_report
+
+search_hubspot_contact
+
+search_outreach_contacts
+create_outreach_campaign
+```
+
+Never expose dangerous generic capabilities such as:
+
+```text
+execute_sql
+run_shell_command
+read_any_file
+write_any_file
+arbitrary_http_request
+```
+
+---
+
+# 35. MCP Tool Organization
+
+Organize tools by domain:
+
+```text
+app/Mcp/Tools/
+├── Clients/
+├── Contacts/
+├── Documents/
+├── Content/
+├── Articles/
+├── Tasks/
+├── Reports/
+├── Google/
+├── HubSpot/
+├── Semrush/
+├── ScreamingFrog/
+├── Outreach/
+└── Admin/
+```
+
+Each tool should:
+
+1. Validate its arguments.
+2. Resolve authenticated user.
+3. Resolve active workspace.
+4. Authorize operation.
+5. Call a service.
+6. Return concise structured data.
+7. Log material write actions.
+
+MCP classes should remain thin.
+
+---
+
+# 36. First MCP Scaffold
+
+Do NOT attempt all ~50 tools before proving the MCP architecture.
+
+Initially implement and test:
+
+```text
+list_clients
+search_clients
+get_client
+create_client
+update_client
+list_client_documents
+link_google_doc
+list_tasks
+```
+
+Verify end-to-end:
+
+```text
+Claude
+ ↓
+MCP authentication
+ ↓
+Workspace resolution
+ ↓
+Tool
+ ↓
+Policy
+ ↓
+Service
+ ↓
+PostgreSQL
+ ↓
+Structured MCP response
+```
+
+Once the foundation is proven, expand the remaining MCP tool catalogue.
+
+---
+
+# 37. React Portal
+
+Use:
+
+```text
+React
+Tailwind CSS
+Vite
+```
+
+The portal must be professional and responsive.
+
+Do NOT create a basic Bootstrap-looking CRUD interface.
+
+Provide a proper application shell with:
+
+```text
+Sidebar
+Top navigation
+Workspace indicator
+User menu
+Breadcrumbs
+Notifications
+Search
+Responsive mobile navigation
+```
+
+---
+
+# 38. Super Admin UI
+
+Super Admin navigation should include approximately:
+
+```text
+Overview
+Workspaces
+Platform Users / Super Admins
+System Activity
+Queue / Jobs
+Integration Health
+System Settings
+```
+
+Workspace management screens must include:
+
+```text
+Workspace list
+Create
+View
+Edit
+Activate/deactivate
+Workspace administrators
+Usage/status
+```
+
+---
+
+# 39. Workspace Portal UI
+
+Workspace navigation should include:
+
+```text
+Dashboard
+
+Clients
+├── All Clients
+├── Contacts
+├── Integrations
+└── Competitors
+
+Content
+├── Calendar
+├── Articles
+├── Pillars
+└── Writers
+
+SEO
+├── Keywords
+├── Semrush
+├── Crawls
+└── Competitors
+
+Outreach
+├── Contacts
+├── Campaigns
+├── Sequences
+├── Templates
+├── Mailboxes
+├── Blacklist
+└── Link Building
+
+Tasks
+├── Board/List
+├── Categories
+└── Time Tracking
+
+Reports
+├── Generated Reports
+└── Templates
+
+Documents
+
+AI
+├── Client Agent Config
+└── Prompt Templates
+
+Team
+
+Activity
+
+Settings
+```
+
+Menus must be permission-aware.
+
+---
+
+# 40. Client Detail Page
+
+Client should behave as a central object.
+
+Provide tabs such as:
+
+```text
+Overview
+Contacts
+Integrations
+Competitors
+Documents
+Content
+Keywords
+SEO
+Crawls
+Tasks
+Reports
+Links
+AI Configuration
+Activity
+```
+
+---
+
+# 41. Tailwind Design
+
+Build a clean professional digital-agency management UI.
+
+Requirements:
+
+* modern sidebar
+* clean typography
+* responsive layout
+* cards
+* proper tables
+* filters
+* pagination
+* forms
+* validation states
+* empty states
+* loading states
+* error states
+* confirmation dialogs
+* reusable components
+* badges/status indicators
+
+Avoid excessive gradients and visual clutter.
+
+Use workspace:
+
+```text
+logo_url
+primary_colour
+accent_colour
+```
+
+for controlled branding where appropriate.
+
+Do not let arbitrary workspace branding break contrast/accessibility.
+
+---
+
+# 42. Activity/Audit Log
+
+The existing:
+
+```text
+activity_log
+```
+
+must become a meaningful security/audit feature.
+
+Record important operations from:
+
+```text
+Portal
+REST API
+MCP
+Automation
+System jobs
+```
+
+Recommended information:
+
+```text
+workspace_id
+user_id
+client_id
+action
+entity_type
+entity_id
+details
+source
+request_id
+created_at
+```
+
+If needed, extend schema to include:
+
+```text
+source
+ip_address
+user_agent
+request_id
+```
+
+Do not log:
+
+* passwords
+* API tokens
+* OAuth refresh tokens
+* SMTP passwords
+* secret credentials
+
+For updates, log safe before/after metadata where useful.
+
+---
+
+# 43. Queues
+
+Use Redis-backed Laravel queues.
+
+Use Horizon.
+
+Long-running operations must be queued, including:
+
+```text
+Semrush pulls
+GA4 synchronization
+GSC synchronization
+large Google operations
+report generation
+Screaming Frog processing
+outreach sends
+email monitoring
+bulk imports
+large exports
+AI scoring
+```
+
+Use separate queues where appropriate:
+
+```text
+default
+integrations
+reports
+seo
+outreach
+emails
+low
+```
+
+Configure:
+
+* retries
+* timeout
+* backoff
+* failed jobs
+* idempotency where necessary
+
+---
+
+# 44. Scheduler
+
+Use Laravel Scheduler for recurring automation.
+
+Potential schedules:
+
+```text
+monthly Semrush snapshot
+analytics refresh
+Search Console refresh
+email queue processing
+outreach sequencing
+inbox/reply monitoring
+daily send-counter reset
+stale task notifications
+report schedules
+integration health checks
+```
+
+Do not implement recurring logic as random cron scripts outside Laravel unless there is a strong technical reason.
+
+---
+
+# 45. Security
+
+Security is critical.
+
+Implement:
+
+* CSRF protection for web sessions
+* secure authentication
+* password hashing using Laravel defaults
+* server-side authorization
+* workspace isolation
+* client-level authorization
+* rate limiting
+* MCP authentication
+* MCP authorization
+* encrypted integration credentials
+* secure secrets in environment configuration
+* validation
+* output escaping
+* safe uploads
+* audit logs
+* secure S3 visibility
+* signed/private URLs where appropriate
+* no secrets in logs
+* no secrets returned by MCP
+
+Never trust IDs merely because they came from the authenticated frontend.
+
+Always verify ownership/scope.
+
+---
+
+# 46. PostgreSQL Integrity
+
+Use proper:
+
+```text
+foreign keys
+indexes
+unique constraints
+cascade/restrict behavior
+JSONB indexes where justified
+```
+
+Important indexes should include combinations commonly filtered by:
+
+```text
+workspace_id
+client_id
+user_id
+status
+created_at
+due_date
+month
+```
+
+Do not index every column blindly.
+
+---
+
+# 47. Workspace-Scoped Query Safety
+
+Create a consistent mechanism to prevent tenant leaks.
+
+Possible approaches:
+
+* Workspace-aware query scopes
+* Service-level repository constraints
+* scoped route binding
+* authorization policies
+* tenant context service
+
+Do not rely solely on a global scope without considering Super Admin cross-workspace administration and queued jobs.
+
+Create explicit architecture documentation explaining how workspace resolution works.
+
+---
+
+# 48. API/MCP Consistency
+
+If the same business operation exists in API and MCP, they should behave consistently.
+
+Example:
+
+```text
+PUT /{workspace}/api/clients/25
+```
+
+and:
+
+```text
+update_client(client_id=25)
+```
+
+must eventually reach the same underlying business method.
+
+Validation and authorization rules must not diverge.
+
+---
+
+# 49. Errors
+
+Use standardized errors.
+
+REST should return appropriate HTTP responses.
+
+MCP should return safe structured MCP errors.
+
+Do not expose:
+
+```text
+stack traces
+database passwords
+SQL
+API secrets
+filesystem paths
+```
+
+in production responses.
+
+---
+
+# 50. Testing
+
+Build tests from the beginning.
+
+At minimum include:
+
+## Workspace Security Tests
+
+Test:
+
+```text
+Workspace A user cannot access Workspace B client
+Workspace A user cannot update Workspace B task
+Workspace A API token cannot access Workspace B
+Workspace A MCP user cannot access Workspace B
+```
+
+These tests are mandatory.
+
+## Role Tests
+
+Verify:
+
+```text
+Super Admin can manage workspaces
+Admin cannot manage workspaces
+Admin can manage own workspace users
+Team Leader cannot create workspace
+Writer cannot access financial data
+VA cannot access prohibited modules
+```
+
+## MCP Tests
+
+Test:
+
+```text
+MCP authentication
+workspace resolution
+tool registration
+tool validation
+tool authorization
+read tool
+write tool
+cross-workspace denial
+```
+
+## Integration Tests
+
+Mock external APIs.
+
+Never require real production API calls for the normal automated test suite.
+
+---
+
+# 51. Seeders
+
+Provide useful development seed data:
+
+```text
+1 Super Admin
+
+Workspace:
+Bough Digital
+
+Users:
+Workspace Admin
+Team Leader
+Employee
+Writer
+VA
+
+Several clients
+
+Contacts
+Tasks
+Articles
+Keywords
+Reports
+Outreach contacts
+```
+
+Use non-sensitive fake data.
+
+---
+
+# 52. Initial Super Admin
+
+Provide a safe documented mechanism for creating the first Super Admin.
+
+Do NOT hard-code production credentials in source code.
+
+Use one of:
+
+```text
+Artisan command
+environment-assisted initial seeding
+secure manual creation
+```
+
+Document the process.
+
+---
+
+# 53. Do Not Build Everything Blindly
+
+This project is large.
+
+Before implementation:
+
+1. Audit the supplied schema.
+2. Produce architecture notes.
+3. Identify missing relationships/tables.
+4. Identify ambiguous requirements.
+5. Create the migration dependency order.
+6. Define tenancy/authorization design.
+7. Define service boundaries.
+8. Define MCP server structure.
+9. Then begin implementation.
+
+Do not replace the supplied requirements with a generic SaaS starter kit.
+
+---
+
+# 54. Phase 1 — Required First Milestone
+
+The first milestone must focus on:
+
+```text
+Laravel project foundation
+PostgreSQL connection
+Redis connection
+Authentication
+Workspace model
+User model
+Roles
+Workspace resolver
+Policies
+Super Admin
+Workspace Admin
+Core client models
+Activity logging
+Laravel MCP installation
+MCP route
+MCP authentication
+Initial MCP tools
+Tests
+```
+
+Do NOT start by spending most of the time styling dozens of frontend screens.
+
+The architecture and security foundation comes first.
+
+---
+
+# 55. Phase 2
+
+Build:
+
+```text
+Client CRUD
+Contacts
+Client access
+Integrations
+Competitors
+Documents
+Tasks
+Activity
+REST APIs
+Portal screens
+```
+
+---
+
+# 56. Phase 3
+
+Build:
+
+```text
+Content calendar
+Articles
+Writers
+Keywords
+Semrush
+Screaming Frog imports
+SEO dashboards
+```
+
+---
+
+# 57. Phase 4
+
+Build:
+
+```text
+Reports
+Google integrations
+HubSpot
+AI configuration
+Prompt templates
+additional MCP tools
+```
+
+---
+
+# 58. Phase 5
+
+Build:
+
+```text
+Outreach
+Sequences
+SMTP/Gmail integration
+scheduled sends
+reply monitoring
+link building
+automation
+```
+
+---
+
+# 59. Phase 6
+
+Final production hardening:
+
+```text
+security audit
+workspace isolation audit
+MCP permissions audit
+database indexes
+performance
+queue tuning
+integration retry behavior
+UI polish
+responsive testing
+full test suite
+deployment documentation
+```
+
+---
+
+# 60. Production Deployment Target
+
+Assume a VPS/cloud-server deployment.
+
+Architecture:
+
+```text
+Nginx
+   ↓
+Laravel / PHP-FPM
+   ├── Portal
+   ├── REST API
+   └── MCP
+
+PostgreSQL
+Redis
+Laravel Horizon
+Laravel Scheduler
+
+S3
+
+External APIs:
+├── Google
+├── HubSpot
+├── Semrush
+└── others
+```
+
+Queue workers must be supervised by:
+
+```text
+systemd
+Supervisor
+or equivalent
+```
+
+Do not design this application around shared-hosting limitations.
+
+---
+
+# 61. Expected URL Architecture
+
+Platform:
+
+```text
+/admin
+/admin/workspaces
+/admin/system
+```
+
+Workspace:
+
+```text
+/{workspace}/dashboard
+/{workspace}/clients
+/{workspace}/content
+/{workspace}/seo
+/{workspace}/outreach
+/{workspace}/tasks
+/{workspace}/reports
+/{workspace}/documents
+/{workspace}/team
+/{workspace}/activity
+/{workspace}/settings
+```
+
+REST:
+
+```text
+/{workspace}/api/...
+```
+
+MCP:
+
+```text
+/mcp/{workspace}
+```
+
+Keep this architecture unless there is a technical MCP transport limitation requiring a minor adjustment.
+
+If an adjustment is necessary, document it before changing the public URL structure.
+
+---
+
+# 62. Quality Requirements
+
+Do not mark a module complete because:
+
+* migration exists
+* controller exists
+* page renders
+* MCP tool class exists
+
+A feature is complete only when its full runtime path works:
+
+```text
+UI/MCP request
+ ↓
+authentication
+ ↓
+workspace
+ ↓
+authorization
+ ↓
+validation
+ ↓
+service
+ ↓
+database/integration
+ ↓
+correct response
+ ↓
+activity log where required
+```
+
+and appropriate automated tests pass.
+
+---
+
+# 63. Code Quality Rules
+
+Use:
+
+* strict type declarations where sensible
+* PHP enums
+* dependency injection
+* Form Requests
+* API Resources
+* Policies
+* Service classes
+* queued Jobs
+* Events/Listeners only where beneficial
+* Laravel conventions
+
+Avoid unnecessary abstraction.
+
+Do not introduce microservices.
+
+Do not introduce Node backend services unless a documented external dependency genuinely requires one and Laravel cannot reasonably perform it.
+
+---
+
+# 64. Documentation
+
+Maintain:
+
+```text
+README.md
+docs/architecture.md
+docs/database.md
+docs/workspaces.md
+docs/permissions.md
+docs/mcp.md
+docs/integrations.md
+docs/deployment.md
+```
+
+`docs/mcp.md` should explain:
+
+```text
+MCP endpoint
+authentication
+workspace resolution
+available tools
+permissions
+how to add a tool
+how to test with MCP Inspector
+Claude connection instructions
+```
+
+---
+
+# 65. Implementation Reporting
+
+After each major phase, provide:
+
+1. Files created
+2. Files modified
+3. Migrations created
+4. Models created
+5. Controllers created
+6. Services created
+7. Policies created
+8. MCP tools created
+9. Routes added
+10. Tests added
+11. Commands executed
+12. Test/build results
+13. Any unresolved issues
+
+Do not claim success without running the relevant tests.
+
+---
+
+# 66. First Task — Start Now
+
+Begin only with the architectural foundation.
+
+Perform the following:
+
+1. Inspect the current repository.
+2. Confirm Laravel/PHP versions.
+3. Audit the supplied database schema.
+4. Produce the proposed final relationship model.
+5. Identify schema corrections and missing tables.
+6. Design workspace tenancy.
+7. Design roles/permissions.
+8. Create Laravel foundation.
+9. Configure PostgreSQL.
+10. Configure Redis.
+11. Install Laravel MCP.
+12. Implement workspace resolver.
+13. Implement authentication.
+14. Implement Super Admin and Workspace Admin separation.
+15. Create the first core migrations/models.
+16. Configure MCP route at:
+
+```text
+/mcp/{workspace}
+```
+
+17. Implement the initial MCP server.
+18. Add initial tools:
+
+```text
+list_clients
+search_clients
+get_client
+create_client
+update_client
+list_client_documents
+link_google_doc
+list_tasks
+```
+
+19. Add workspace-isolation tests for web/API/MCP.
+20. Run migrations.
+21. Run automated tests.
+22. Run frontend build.
+23. Report exactly what works.
+
+Do NOT proceed into all remaining modules until the foundation passes.
+
+---
+
+# Non-Negotiable Rules
+
+* Laravel backend, not Node backend.
+* Standard Laravel MVC.
+* PostgreSQL.
+* Workspace is the main tenant.
+* Super Admin is platform-level.
+* Only Super Admin manages Workspaces.
+* Workspace Admin cannot manage Workspaces.
+* Workspace Admin cannot become Super Admin.
+* No cross-workspace data access.
+* Client-level access restrictions must work.
+* React + Tailwind portal.
+* REST API and MCP in the same Laravel application.
+* Shared Service layer between Web/API/MCP/Jobs.
+* Laravel MCP for Claude integration.
+* Redis queues for background work.
+* External integrations isolated behind Services.
+* Credentials encrypted.
+* No generic SQL/shell MCP tools.
+* Every MCP write is authorized.
+* Important MCP writes are audit logged.
+* Long-running MCP actions must use queues.
+* Tests must prove tenant isolation.
+* Do not fake functionality.
+* Do not mark incomplete integrations as complete.

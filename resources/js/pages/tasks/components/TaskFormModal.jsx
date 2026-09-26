@@ -49,7 +49,6 @@ export default function TaskFormModal({ task = null, formOptions = {}, defaultCl
             <form className="form-stack" onSubmit={handleSubmit}>
                 {formError ? <ErrorState title="Could not save task" copy={formError} /> : null}
                 <Input icon={Type} name="title" label="Title" defaultValue={task?.title || ''} error={errors.title?.[0]} required />
-                <Textarea name="description" label="Description" defaultValue={task?.description || ''} error={errors.description?.[0]} />
                 <div className="form-row">
                     <Select
                         name="client_id"
@@ -74,6 +73,7 @@ export default function TaskFormModal({ task = null, formOptions = {}, defaultCl
                     <Input icon={CalendarDays} name="due_date" type="date" label="Due date" defaultValue={task?.due_date || ''} error={errors.due_date?.[0]} />
                     <Input icon={Clock3} name="estimated_hours" type="number" min="0" step="0.25" label="Estimated hours" defaultValue={task?.estimated_hours ?? ''} error={errors.estimated_hours?.[0]} />
                 </div>
+                <Textarea name="description" label="Description" defaultValue={task?.description || ''} error={errors.description?.[0]} />
                 <div className="inline-actions action-group-end">
                     <Button variant="secondary" onClick={onClose} disabled={submitting}>Cancel</Button>
                     <Button icon={Save} type="submit" disabled={submitting}>{submitting ? 'Saving...' : 'Save task'}</Button>

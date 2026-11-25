@@ -23,6 +23,9 @@ import ClientCreate from '@/pages/clients/Create';
 import ClientEdit from '@/pages/clients/Edit';
 import ClientsIndex from '@/pages/clients/Index';
 import ClientShow from '@/pages/clients/Show';
+import ArticleCreate from '@/pages/content/articles/Create';
+import ArticleEdit from '@/pages/content/articles/Edit';
+import ArticleShow from '@/pages/content/articles/Show';
 import Dashboard from '@/pages/dashboard/Dashboard';
 import DocumentsIndex from '@/pages/documents/Index';
 import GenericPage from '@/pages/generic/GenericPage';
@@ -68,6 +71,9 @@ const WORKSPACE_PAGES = {
     'client-detail': ClientShow,
     'client-create': ClientCreate,
     'client-edit': ClientEdit,
+    'article-create': ArticleCreate,
+    'article-show': ArticleShow,
+    'article-edit': ArticleEdit,
     tasks: TasksIndex,
     documents: DocumentsIndex,
     activity: ActivityIndex,
@@ -87,6 +93,9 @@ function titleFor(page, section, pageData) {
         'client-detail': pageData.client?.name,
         'client-create': 'Add client',
         'client-edit': `Edit ${pageData.client?.name}`,
+        'article-create': 'New article',
+        'article-show': pageData.article?.title,
+        'article-edit': `Edit ${pageData.article?.title}`,
         'workspace-create': 'Create workspace',
         'workspace-show': pageData.workspace?.name,
         'workspace-edit': `Edit ${pageData.workspace?.name}`,

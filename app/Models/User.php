@@ -6,6 +6,8 @@ use App\Enums\UserRole;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -53,6 +55,26 @@ class User extends Authenticatable
     {
         return $this->role->canAccessAllWorkspaceClients()
             || $this->clientAccess()->whereKey($clientId)->exists();
+    }
+
+    /**
+     * Active members of the client's workspace who can open that client, for
+     * example the writers an article or calendar entry can be assigned to.
+     */
+    #[Scope]
+    protected function assignableToClient(Builder $query, Client $client): void
+    {
+        $allClientRoles = array_filter(
+            UserRole::workspaceRoles(),
+            fn (UserRole $role) => $role->canAccessAllWorkspaceClients(),
+        );
+
+        $query->where('users.workspace_id', $client->workspace_id)
+            ->where('users.is_active', true)
+            ->where('users.role', '!=', UserRole::SuperAdmin)
+            ->where(fn (Builder $query) => $query
+                ->whereIn('users.role', $allClientRoles)
+                ->orWhereHas('clientAccess', fn (Builder $query) => $query->whereKey($client->id)));
     }
 
     /**

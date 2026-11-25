@@ -34,12 +34,34 @@ enum ActivityEvent: string
     case ClientArchived = 'client.archived';
     case ClientRestored = 'client.restored';
     case ClientDeleted = 'client.deleted';
+    case ClientAiConfigUpdated = 'client.ai_config_updated';
+    case ClientAiConfigReset = 'client.ai_config_reset';
+
+    case CompetitorCreated = 'competitor.created';
+    case CompetitorUpdated = 'competitor.updated';
+    case CompetitorDeleted = 'competitor.deleted';
 
     case TaskCreated = 'task.created';
     case TaskUpdated = 'task.updated';
     case TaskAssigned = 'task.assigned';
     case TaskStatusChanged = 'task.status_changed';
     case TaskDeleted = 'task.deleted';
+
+    case IntegrationConnected = 'integration.connected';
+    case IntegrationUpdated = 'integration.updated';
+    case IntegrationDisconnected = 'integration.disconnected';
+    case IntegrationDeleted = 'integration.deleted';
+
+    case ContentPillarCreated = 'content_pillar.created';
+    case ContentPillarUpdated = 'content_pillar.updated';
+    case ContentPillarDeleted = 'content_pillar.deleted';
+    case CalendarEntryCreated = 'content_calendar.created';
+    case CalendarEntryUpdated = 'content_calendar.updated';
+    case CalendarEntryDeleted = 'content_calendar.deleted';
+    case ArticleCreated = 'article.created';
+    case ArticleUpdated = 'article.updated';
+    case ArticleDeleted = 'article.deleted';
+    case ArticleScored = 'article.scored';
 
     case DocumentUploaded = 'document.uploaded';
     case DocumentLinked = 'document.linked';
@@ -56,6 +78,12 @@ enum ActivityEvent: string
             self::WorkspaceMemberRemoved => 'Removed a team member',
             self::WorkspaceMemberRoleChanged => 'Changed a team member role',
             self::TaskStatusChanged => 'Changed task status',
+            self::CalendarEntryCreated => 'Added a calendar entry',
+            self::CalendarEntryUpdated => 'Updated a calendar entry',
+            self::CalendarEntryDeleted => 'Deleted a calendar entry',
+            self::ArticleScored => 'Scored an article',
+            self::ClientAiConfigUpdated => 'Updated AI configuration',
+            self::ClientAiConfigReset => 'Reset AI configuration',
             default => Str::of($this->value)->replace(['.', '_'], ' ')->ucfirst()->toString(),
         };
     }

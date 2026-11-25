@@ -108,3 +108,28 @@ export function formatTime(value, preferences = {}, fallback = 'Not available') 
 
     return formatted || fallback;
 }
+
+function dateOnly(value) {
+    const parts = dateOnlyParts(value);
+
+    return parts ? new Date(Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day))) : null;
+}
+
+/**
+ * Month heading for a date-only value such as a publish date: "September 2026".
+ */
+export function formatMonthYear(value, fallback = 'No date') {
+    const date = dateOnly(value);
+
+    return date ? date.toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' }) : fallback;
+}
+
+/**
+ * Short day label for a date-only value: "28 Sep".
+ */
+export function formatDayMonth(value, fallback = '—') {
+    const date = dateOnly(value);
+
+    // Built from parts because en-GB/en-AU abbreviate September as "Sept".
+    return date ? `${date.getUTCDate()} ${date.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' })}` : fallback;
+}

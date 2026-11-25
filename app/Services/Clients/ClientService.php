@@ -9,6 +9,7 @@ use App\Models\Client;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Services\Audit\ActivityLogger;
+use App\Services\Workspaces\WorkspaceStorageService;
 use App\Support\Pagination;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Arr;
@@ -20,7 +21,7 @@ class ClientService
 {
     private const AUDITED_FIELDS = ['name', 'slug', 'website_url', 'status'];
 
-    public function __construct(private ActivityLogger $activity) {}
+    public function __construct(private ActivityLogger $activity, private WorkspaceStorageService $storage) {}
 
     public function list(Workspace $workspace, User $user, array $filters = []): LengthAwarePaginator
     {
@@ -105,11 +106,17 @@ class ClientService
             ]);
         }
 
+        // Competitors and the AI configuration are removed with the client by the
+        // database; their logo files are cleaned up once the rows are gone.
+        $logos = $client->competitors()->whereNotNull('logo_path')->get(['logo_disk', 'logo_path']);
+
         DB::transaction(function () use ($client, $user, $source): void {
             $this->activity->log(ActivityEvent::ClientDeleted, $client->workspace, $user, $client, $this->auditSnapshot($client), $source);
 
             $client->delete();
         });
+
+        $logos->each(fn ($logo) => $this->storage->delete($logo->logo_disk, $logo->logo_path));
     }
 
     private function updateEvent(Client $client, bool $statusChanged): ActivityEvent

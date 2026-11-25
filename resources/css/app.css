@@ -236,9 +236,11 @@ textarea {
     color: var(--brand-danger);
 }
 
+/* Stacks are one shrinkable column so nested tables scroll within their card. */
 .form-stack {
     display: grid;
     gap: 16px;
+    grid-template-columns: minmax(0, 1fr);
     margin-top: 24px;
 }
 
@@ -1022,6 +1024,7 @@ textarea {
 .page-stack {
     display: grid;
     gap: 22px;
+    grid-template-columns: minmax(0, 1fr);
 }
 
 .page-header {
@@ -1054,17 +1057,24 @@ textarea {
     grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
 }
 
+/* A single shrinkable column until the breakpoints below add more, so wide
+   content (tables) scrolls inside its card instead of widening the page. */
 .grid-two {
     display: grid;
     gap: 18px;
+    grid-template-columns: minmax(0, 1fr);
 }
 
 .grid-three {
     display: grid;
     gap: 14px;
+    grid-template-columns: minmax(0, 1fr);
 }
 
+/* min-width: 0 lets a card shrink inside grid layouts so wide content (the
+   tab row, tables) scrolls within the card instead of widening the page. */
 .card {
+    min-width: 0;
     border: 1px solid var(--brand-border);
     border-radius: var(--radius);
     background: var(--brand-surface);
@@ -1564,6 +1574,12 @@ textarea {
         justify-content: space-between;
     }
 
+    /* In the stacked layout the title block would size to its full text; capping
+       it lets a long page title truncate instead of widening the page. */
+    .topbar > :first-child {
+        max-width: 100%;
+    }
+
     .top-actions .search-cta {
         display: none;
     }
@@ -1614,3 +1630,243 @@ textarea {
     font: inherit;
 }
 
+
+.field-hint {
+    color: var(--brand-muted);
+    font-size: 0.82rem;
+    font-weight: 500;
+    line-height: 1.45;
+}
+
+/* Chip list used by TagInput; chips wrap onto new lines inside the control. */
+.field-shell.tag-input {
+    height: auto;
+    min-height: 44px;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 6px 8px;
+}
+
+.field-shell.tag-input input {
+    min-width: 140px;
+    padding: 4px;
+}
+
+.tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.tag-chip {
+    display: inline-flex;
+    max-width: 100%;
+    align-items: center;
+    border: 1px solid var(--brand-border);
+    border-radius: 6px;
+    background: var(--brand-green-soft);
+    color: var(--brand-green-dark);
+    font-size: 0.84rem;
+    font-weight: 700;
+}
+
+.tag-chip-static {
+    padding: 3px 8px;
+}
+
+.tag-chip-text,
+.tag-chip-remove {
+    border: 0;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+}
+
+.tag-chip-text {
+    overflow-wrap: anywhere;
+    padding: 3px 4px 3px 8px;
+    text-align: left;
+}
+
+.tag-chip-remove {
+    display: grid;
+    place-items: center;
+    padding: 5px 6px 5px 2px;
+}
+
+.tag-chip-text:focus-visible,
+.tag-chip-remove:focus-visible {
+    border-radius: 4px;
+    outline: 2px solid var(--brand-focus);
+}
+
+.key-url-list {
+    display: grid;
+    gap: 12px;
+}
+
+.key-url-row {
+    display: grid;
+    align-items: start;
+    gap: 12px;
+    grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.key-url-row > :first-child {
+    grid-column: 1 / -1;
+}
+
+@media (min-width: 768px) {
+    .key-url-row {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto;
+    }
+
+    .key-url-row > :first-child {
+        grid-column: auto;
+    }
+}
+
+.competitor-name {
+    display: inline-flex;
+    min-width: 0;
+    align-items: center;
+    gap: 10px;
+}
+
+.competitor-logo {
+    width: 28px;
+    height: 28px;
+    flex: 0 0 auto;
+    border: 1px solid var(--brand-border);
+    border-radius: 6px;
+    background: var(--brand-bg);
+    object-fit: contain;
+}
+
+.competitor-logo-large {
+    max-width: 160px;
+    max-height: 64px;
+    object-fit: contain;
+}
+
+.integration-grid {
+    display: grid;
+    gap: 14px;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+
+.integration-card {
+    display: grid;
+    align-content: start;
+    gap: 10px;
+}
+
+/* Name above the badge on every card, whatever the name's length. */
+.integration-card-head {
+    display: grid;
+    justify-items: start;
+    gap: 8px;
+    color: var(--brand-navy);
+}
+
+.pillar-name {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pillar-swatch {
+    width: 10px;
+    height: 10px;
+    flex: 0 0 auto;
+    border-radius: 3px;
+}
+
+/* Calendar grouped by month: date, title and details, status, actions. */
+.agenda-row {
+    display: grid;
+    align-items: center;
+    gap: 6px 14px;
+    grid-template-columns: 64px minmax(0, 1fr) auto auto;
+    border-bottom: 1px solid var(--brand-border);
+    padding: 12px 4px;
+}
+
+.agenda-row:last-child {
+    border-bottom: 0;
+}
+
+.agenda-date {
+    color: var(--brand-navy);
+    font-weight: 800;
+}
+
+.agenda-body {
+    display: grid;
+    min-width: 0;
+    gap: 2px;
+}
+
+@media (max-width: 640px) {
+    .agenda-row {
+        grid-template-columns: 56px minmax(0, 1fr) auto;
+    }
+
+    .agenda-row .badge {
+        grid-column: 2;
+        justify-self: start;
+    }
+
+    .agenda-row .row-actions {
+        grid-column: 3;
+        grid-row: 1;
+    }
+}
+
+.score-summary {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.score-tile {
+    display: grid;
+    gap: 4px;
+    border: 1px solid var(--brand-border);
+    border-radius: var(--radius);
+    background: var(--brand-bg-soft);
+    padding: 14px;
+}
+
+.score-tile span {
+    color: var(--brand-muted);
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.score-tile strong {
+    color: var(--brand-navy);
+    font-size: 1.8rem;
+    line-height: 1.1;
+}
+
+.score-pair {
+    display: inline-flex;
+    gap: 10px;
+    white-space: nowrap;
+}
+
+.score-row {
+    border-bottom: 1px solid var(--brand-border);
+    padding: 8px 0;
+}
+
+.score-row:last-child {
+    border-bottom: 0;
+}
+
+.preserve-lines {
+    white-space: pre-line;
+}

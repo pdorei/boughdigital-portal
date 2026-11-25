@@ -2,12 +2,28 @@
 
 namespace Tests;
 
+use App\Services\Installer\InstallerService;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use RuntimeException;
 
 abstract class TestCase extends BaseTestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Tests run as an installed portal whether or not this checkout has a .env.
+        // InstallerTest swaps the real check back in.
+        $this->app->instance(InstallerService::class, new class extends InstallerService
+        {
+            public function installed(): bool
+            {
+                return true;
+            }
+        });
+    }
+
     public function createApplication(): Application
     {
         $app = parent::createApplication();

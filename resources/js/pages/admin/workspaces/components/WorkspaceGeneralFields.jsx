@@ -1,24 +1,14 @@
-import React, { useMemo, useState } from 'react';
-import { Image, Tag, Trash2, Upload } from 'lucide-react';
+import React, { useState } from 'react';
+import { Tag } from 'lucide-react';
 import Checkbox from '@/components/forms/Checkbox';
+import ImageUpload from '@/components/forms/ImageUpload';
 import Input from '@/components/forms/Input';
-import Button from '@/components/ui/Button';
-import ColourInput from '@/pages/admin/workspaces/components/ColourInput';
+import ColourInput from '@/components/forms/ColourInput';
 
 export default function WorkspaceGeneralFields({ defaults, errors }) {
     const [name, setName] = useState(defaults.name);
     const [slug, setSlug] = useState(defaults.slug);
     const [slugTouched, setSlugTouched] = useState(Boolean(defaults.slug));
-    const [preview, setPreview] = useState(defaults.logo_url || null);
-    const [fileName, setFileName] = useState('');
-    const [removeLogo, setRemoveLogo] = useState(false);
-
-    const logoLabel = useMemo(() => {
-        if (fileName) return fileName;
-        if (removeLogo || !defaults.logo_url) return 'No logo uploaded';
-
-        return 'Current workspace logo';
-    }, [defaults.logo_url, fileName, removeLogo]);
 
     function slugify(value) {
         return value
@@ -35,24 +25,6 @@ export default function WorkspaceGeneralFields({ defaults, errors }) {
         if (!slugTouched) {
             setSlug(slugify(nextName));
         }
-    }
-
-    function handleLogoChange(event) {
-        const file = event.target.files?.[0];
-
-        if (!file) {
-            return;
-        }
-
-        setFileName(file.name);
-        setPreview(URL.createObjectURL(file));
-        setRemoveLogo(false);
-    }
-
-    function handleRemoveLogo() {
-        setPreview(null);
-        setFileName('');
-        setRemoveLogo(true);
     }
 
     return (
@@ -75,24 +47,7 @@ export default function WorkspaceGeneralFields({ defaults, errors }) {
                     error={errors.slug?.[0]}
                 />
             </div>
-            <div className="logo-upload">
-                <div className="logo-preview">
-                    {preview ? <img src={preview} alt="" /> : <span className="logo-placeholder"><Image size={18} /></span>}
-                    <span>{logoLabel}</span>
-                </div>
-                <div className="inline-actions">
-                    <label className="btn btn-secondary">
-                        <Upload size={17} />
-                        {defaults.logo_url ? 'Replace Logo' : 'Choose Logo'}
-                        <input type="file" name="logo" accept="image/png,image/jpeg,image/webp" onChange={handleLogoChange} />
-                    </label>
-                    {defaults.logo_url && !removeLogo ? (
-                        <Button icon={Trash2} variant="secondary" type="button" onClick={handleRemoveLogo}>Remove Logo</Button>
-                    ) : null}
-                </div>
-                <input type="hidden" name="remove_logo" value={removeLogo ? '1' : '0'} />
-                {errors.logo?.[0] ? <span className="field-error">{errors.logo[0]}</span> : null}
-            </div>
+            <ImageUpload currentUrl={defaults.logo_url || null} currentLabel="Current workspace logo" error={errors.logo?.[0]} />
             <div className="form-row">
                 <ColourInput name="primary_colour" label="Primary Colour" defaultValue={defaults.primary_colour} error={errors.primary_colour?.[0]} />
                 <ColourInput name="accent_colour" label="Accent Colour" defaultValue={defaults.accent_colour} error={errors.accent_colour?.[0]} />

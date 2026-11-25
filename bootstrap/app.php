@@ -2,12 +2,14 @@
 
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\EnsureWorkspaceAccess;
+use App\Http\Middleware\RedirectToInstaller;
 use App\Http\Middleware\ResolveWorkspace;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Session\Middleware\AuthenticateSession;
+use Illuminate\Support\Facades\Route;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -15,11 +17,17 @@ return Application::configure(basePath: dirname(__DIR__))
         then: function (): void {
             require __DIR__.'/../routes/api.php';
             require __DIR__.'/../routes/ai.php';
+
+            // No "web" group: the installer must work before .env and the app key exist.
+            Route::prefix('install')->group(base_path('routes/install.php'));
         },
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Sends a fresh, uninstalled copy to /install; a no-op once installed.
+        $middleware->prepend(RedirectToInstaller::class);
+
         // AuthenticateSession signs out other sessions after a password change.
         $middleware->web(append: [AuthenticateSession::class, EnsureUserIsActive::class]);
 

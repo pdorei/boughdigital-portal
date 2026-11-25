@@ -82,6 +82,9 @@ Route::prefix('{workspace}')
         Route::get('clients/create', 'createClient')->name('clients.create');
         Route::get('clients/{client}', 'showClient')->name('clients.show');
         Route::get('clients/{client}/edit', 'editClient')->name('clients.edit');
+        Route::get('clients/{client}/articles/create', 'createArticle')->name('articles.create');
+        Route::get('clients/{client}/articles/{article}', 'showArticle')->whereNumber('article')->name('articles.show');
+        Route::get('clients/{client}/articles/{article}/edit', 'editArticle')->whereNumber('article')->name('articles.edit');
         Route::get('tasks', 'tasks')->name('tasks');
         Route::get('documents', 'documents')->name('documents');
         Route::get('activity', 'activity')->name('activity');

@@ -4,14 +4,17 @@ namespace App\Http\Controllers\Pages;
 
 use App\Enums\TaskStatus;
 use App\Enums\UserRole;
+use App\Http\Resources\ArticleResource;
 use App\Http\Resources\ClientResource;
 use App\Http\Resources\UserResource;
+use App\Models\Article;
 use App\Models\Client;
 use App\Models\ClientDocument;
 use App\Models\Task;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Services\Clients\ClientService;
+use App\Services\Content\ArticleService;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -21,7 +24,7 @@ class WorkspacePageController extends PortalPageController
     /** Modules that are routed but belong to a later delivery phase. */
     private const PLANNED_PAGES = ['content', 'seo', 'outreach', 'reports'];
 
-    public function __construct(private TenantContext $tenant, private ClientService $clients) {}
+    public function __construct(private TenantContext $tenant, private ClientService $clients, private ArticleService $articles) {}
 
     public function dashboard(Request $request): View
     {
@@ -66,7 +69,35 @@ class WorkspacePageController extends PortalPageController
             'team' => $client->members()->where('is_active', true)->orderBy('name')->get(['users.id', 'name', 'role'])
                 ->map(fn (User $member) => ['id' => $member->id, 'name' => $member->name, 'role' => $member->role->label()]),
             'form_options' => $this->taskFormOptions($request->user()),
+            'writers' => $this->writerOptions($client),
+            'can' => ['create_article' => $request->user()->can('create', [Article::class, $client])],
         ]);
+    }
+
+    public function createArticle(Request $request, string $workspace, string $client): View
+    {
+        $client = $this->clients->findBySlug($this->tenant->workspace(), $client);
+        $this->authorize('create', [Article::class, $client]);
+
+        // Starting from a calendar entry prefills the form and links the result to it.
+        $entry = $request->filled('calendar_entry')
+            ? $client->calendarEntries()->whereNull('article_id')->find($request->integer('calendar_entry'))
+            : null;
+
+        return $this->page('article-create', [
+            ...$this->articlePageData($request, $client),
+            'calendar_entry' => $entry?->only(['id', 'title', 'target_keyword', 'secondary_keywords', 'search_intent', 'content_pillar_id', 'assigned_writer_id']),
+        ]);
+    }
+
+    public function showArticle(Request $request, string $workspace, string $client, int $article): View
+    {
+        return $this->articlePage($request, 'article-show', 'view', $client, $article);
+    }
+
+    public function editArticle(Request $request, string $workspace, string $client, int $article): View
+    {
+        return $this->articlePage($request, 'article-edit', 'update', $client, $article);
     }
 
     public function editClient(Request $request, string $workspace, string $client): View
@@ -147,6 +178,35 @@ class WorkspacePageController extends PortalPageController
             'selected_user' => (new UserResource($member->load(['workspace', 'clientAccess'])))->resolve($request),
             'form_clients' => $this->clientOptions($workspace),
         ]);
+    }
+
+    private function articlePage(Request $request, string $page, string $ability, string $clientSlug, int $id): View
+    {
+        $client = $this->clients->findBySlug($this->tenant->workspace(), $clientSlug);
+        $article = $this->articles->findForClient($client, $id);
+        $this->authorize($ability, $article);
+
+        return $this->page($page, [
+            ...$this->articlePageData($request, $client),
+            'article' => (new ArticleResource($article))->resolve($request),
+        ]);
+    }
+
+    private function articlePageData(Request $request, Client $client): array
+    {
+        return [
+            'client' => $client->only(['id', 'name', 'slug']),
+            'writers' => $this->writerOptions($client),
+            'pillars' => $client->contentPillars()->orderBy('sort_order')->orderBy('name')->get(['id', 'name', 'active'])
+                ->map(fn ($pillar) => ['value' => $pillar->id, 'label' => $pillar->name, 'active' => $pillar->active]),
+        ];
+    }
+
+    private function writerOptions(Client $client): array
+    {
+        return User::query()->assignableToClient($client)->orderBy('name')->get(['users.id', 'name'])
+            ->map(fn (User $user) => ['value' => $user->id, 'label' => $user->name])
+            ->all();
     }
 
     private function page(string $page, array $pageData = []): View

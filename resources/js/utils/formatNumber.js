@@ -8,3 +8,7 @@ export function formatBytes(bytes) {
 
     return `${value.toFixed(index === 0 ? 0 : 1)} ${UNITS[index]}`;
 }
+
+export function formatNumber(value) {
+    return Number(value).toLocaleString('en-AU');
+}

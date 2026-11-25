@@ -23,6 +23,7 @@ class ReservedWorkspaceSlugs
             'documents',
             'forgot-password',
             'horizon',
+            'install',
             'login',
             'logout',
             'mcp',

@@ -22,6 +22,10 @@ class ActivityLogger
         'smtp_password',
         'access_key_id',
         'secret_access_key',
+        'api_key',
+        'access_token',
+        'refresh_token',
+        'client_secret',
     ];
 
     public function log(

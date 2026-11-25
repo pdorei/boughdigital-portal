@@ -2,9 +2,20 @@
 
 namespace App\View\Composers;
 
+use App\Enums\ArticleScoreCategory;
+use App\Enums\ArticleScoreType;
+use App\Enums\ArticleStatus;
 use App\Enums\ClientStatus;
+use App\Enums\CompetitorTier;
+use App\Enums\CompetitorType;
+use App\Enums\ContentCalendarStatus;
+use App\Enums\ContentType;
 use App\Enums\DocumentFolder;
 use App\Enums\DocumentSource;
+use App\Enums\IntegrationAuthType;
+use App\Enums\IntegrationProvider;
+use App\Enums\IntegrationStatus;
+use App\Enums\SearchIntent;
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use App\Enums\UserRole;
@@ -114,6 +125,17 @@ class PortalComposer
             'task_priorities' => TaskPriority::options(),
             'document_folders' => DocumentFolder::options(),
             'document_sources' => DocumentSource::options(),
+            'competitor_tiers' => CompetitorTier::options(),
+            'competitor_types' => CompetitorType::options(),
+            'integration_providers' => IntegrationProvider::options(),
+            'integration_auth_types' => IntegrationAuthType::options(),
+            'integration_statuses' => IntegrationStatus::options(),
+            'content_calendar_statuses' => ContentCalendarStatus::options(),
+            'content_types' => ContentType::options(),
+            'search_intents' => SearchIntent::options(),
+            'article_statuses' => ArticleStatus::options(),
+            'article_score_types' => ArticleScoreType::options(),
+            'article_score_categories' => ArticleScoreCategory::options(),
             'roles' => UserRole::options(),
             'workspace_roles' => array_map(fn (UserRole $role) => ['value' => $role->value, 'label' => $role->label()], UserRole::workspaceRoles()),
         ];

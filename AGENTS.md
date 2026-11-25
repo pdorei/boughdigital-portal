@@ -530,6 +530,9 @@ Current rules:
 - Tasks with time entries cannot be deleted.
 - Workspaces are deactivated. Permanent deletion is only allowed for an inactive workspace with no clients, tasks or documents, and activity history is kept.
 - A workspace must always keep at least one active admin.
+- Disconnecting an integration clears its credentials and keeps the record; Delete removes it.
+- Content pillars used by articles or calendar entries cannot be deleted; deactivate them instead.
+- Deleting an article removes its score history; a linked calendar entry is kept without its article.
 
 ---
 
@@ -952,7 +955,27 @@ Credentials must come from secure configuration/environment variables.
 
 Never commit credentials.
 
+Client integrations (`client_integrations`, Client → Integrations tab):
+
+- `App\Enums\IntegrationProvider` is the provider catalogue (label, auth method, whether it can be set up yet). OAuth providers are listed but not available until their consent flow is built; no provider API is called yet.
+- Per-client credentials are stored in `credentials` with the `encrypted:array` cast (APP_KEY) and are hidden from serialization. Read them only in backend provider code; never return them in resources, React props or activity details. Resources expose `credential_configured` only.
+- `ClientIntegrationService` owns create/update/disconnect/delete. One integration per provider per client (unique index).
+- Viewing status requires client access; managing integrations is workspace Admin only.
+
 ---
+
+# Client Content
+
+Content (Client → Content) is separate from Documents. Documents are files and links; Content is editorial work:
+
+- `content_pillars` — a client's main topics.
+- `content_calendar_entries` — planned content ("what are we going to produce?"). `article_id` links an entry to the article written for it (one article per entry).
+- `articles` — the content actually produced, with body, SEO fields and tags. Word count is derived from the body.
+- `article_scores` — AI or human scores with a category breakdown; an article keeps its score history. No AI scoring engine exists yet.
+
+`ContentPillarService`, `ContentCalendarService` and `ArticleService` (`App\Services\Content`) hold the business rules for Portal, API and future MCP tools. Related IDs (pillar, writer, article, calendar entry) are always checked against the owning client. Writers must be able to access the client (`User::assignableToClient`).
+
+Access: anyone with client access can view; Admins and Team Leaders manage; a writer may edit articles assigned to them; only Admins delete.
 
 # Google Documents
 

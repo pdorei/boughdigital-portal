@@ -3,6 +3,7 @@
 namespace App\Services\Workspaces;
 
 use App\Models\Client;
+use App\Models\ClientCompetitor;
 use App\Models\ClientDocument;
 use App\Models\Workspace;
 use App\Services\Storage\StorageSettingsService;
@@ -41,6 +42,11 @@ class WorkspaceStorageService
         return $this->root($client->workspace_id)."/clients/{$client->id}/documents";
     }
 
+    public function clientCompetitorsDirectory(Client $client): string
+    {
+        return $this->root($client->workspace_id)."/clients/{$client->id}/competitors";
+    }
+
     public function publicDisk(): string
     {
         return $this->storageSettings->activeDisk() === 's3' ? 's3' : 'public';
@@ -73,6 +79,19 @@ class WorkspaceStorageService
         return $this->store($this->privateDisk(), $this->clientDocumentsDirectory($client), $file, $name);
     }
 
+    /**
+     * Competitor logos are client business data, so they stay on the private
+     * disk and are served through an authorized endpoint.
+     *
+     * @return array{disk: string, path: string}
+     */
+    public function storeCompetitorLogo(ClientCompetitor $competitor, UploadedFile $file): array
+    {
+        $name = "logo-{$competitor->id}-".Str::lower(Str::random(12)).'.'.$this->extensionFor($file);
+
+        return $this->store($this->privateDisk(), $this->clientCompetitorsDirectory($competitor->client), $file, $name);
+    }
+
     public function logoUrl(Workspace $workspace): ?string
     {
         if (blank($workspace->logo_path)) {
@@ -97,6 +116,25 @@ class WorkspaceStorageService
         }
 
         return $disk->download($document->storage_path, $filename);
+    }
+
+    /**
+     * Displays a private image in the browser (for example an <img> source).
+     */
+    public function inline(string $disk, string $path): Response
+    {
+        $filesystem = $this->disk($disk);
+
+        abort_unless($filesystem->exists($path), 404);
+
+        if ($disk === 's3') {
+            return redirect()->away($filesystem->temporaryUrl($path, now()->addMinutes(5)));
+        }
+
+        return $filesystem->response($path, null, [
+            'Cache-Control' => 'private, max-age=300',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 
     public function delete(?string $disk, ?string $path): void

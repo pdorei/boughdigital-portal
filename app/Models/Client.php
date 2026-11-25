@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable(['workspace_id', 'name', 'slug', 'website_url', 'status', 'metadata'])]
 class Client extends Model
@@ -30,6 +31,36 @@ class Client extends Model
     public function tasks(): HasMany
     {
         return $this->hasMany(Task::class);
+    }
+
+    public function competitors(): HasMany
+    {
+        return $this->hasMany(ClientCompetitor::class);
+    }
+
+    public function integrations(): HasMany
+    {
+        return $this->hasMany(ClientIntegration::class);
+    }
+
+    public function contentPillars(): HasMany
+    {
+        return $this->hasMany(ContentPillar::class);
+    }
+
+    public function calendarEntries(): HasMany
+    {
+        return $this->hasMany(ContentCalendarEntry::class);
+    }
+
+    public function articles(): HasMany
+    {
+        return $this->hasMany(Article::class);
+    }
+
+    public function aiConfig(): HasOne
+    {
+        return $this->hasOne(ClientAiConfig::class);
     }
 
     public function members(): BelongsToMany

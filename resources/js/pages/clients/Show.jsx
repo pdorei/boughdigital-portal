@@ -22,7 +22,7 @@ export default function ClientShow({ base }) {
                     </div>
                 )}
             />
-            <ClientTabs client={client} team={pageData.team || []} base={base} formOptions={pageData.form_options || {}} />
+            <ClientTabs client={client} team={pageData.team || []} base={base} formOptions={pageData.form_options || {}} writers={pageData.writers || []} can={pageData.can || {}} />
         </div>
     );
 }

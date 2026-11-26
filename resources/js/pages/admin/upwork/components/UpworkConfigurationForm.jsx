@@ -54,7 +54,7 @@ function NumberField({ label, value, onChange, error, icon = Hash, min = 0, step
     );
 }
 
-export default function UpworkSettings() {
+export default function UpworkConfigurationForm() {
     const { options } = useWorkspace();
     const [form, setForm] = useState(null);
     const [loadError, setLoadError] = useState(null);
@@ -133,7 +133,7 @@ export default function UpworkSettings() {
                     <Checkbox checked={Boolean(form.automation_enabled)} onChange={(event) => update('automation_enabled', event.target.checked)}>
                         Run searches automatically
                     </Checkbox>
-                    <p className="field-hint">Runs need Upwork to be connected (Settings &gt; Connections). Proposals are always approved and sent by a person.</p>
+                    <p className="field-hint">Runs need Upwork to be connected (<a className="strong-link" href="/admin/connections">Connections</a>). Proposals are always approved and sent by a person.</p>
                     <div className="field-grid">
                         <NumberField icon={Clock} label="Run every (minutes)" min={15} value={form.run_interval_minutes} onChange={(value) => update('run_interval_minutes', value)} error={error('run_interval_minutes')} />
                     </div>

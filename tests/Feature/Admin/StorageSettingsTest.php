@@ -30,7 +30,7 @@ class StorageSettingsTest extends TestCase
         $this->get('/admin/system')->assertOk();
 
         $this->get('/admin/settings/storage')
-            ->assertRedirect('/admin/settings?tab=storage');
+            ->assertRedirect('/admin/settings');
     }
 
     public function test_workspace_user_cannot_access_system_storage_settings_page_or_api(): void

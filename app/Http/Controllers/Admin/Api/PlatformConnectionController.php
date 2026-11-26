@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 /**
- * Settings > Connections. Responses carry configured flags only: API keys and
+ * Admin > Connections. Responses carry configured flags only: API keys and
  * OAuth tokens never leave the backend.
  */
 class PlatformConnectionController extends Controller

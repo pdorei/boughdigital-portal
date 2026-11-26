@@ -48,16 +48,18 @@ Route::prefix('admin')
             Route::get("/{$page}", [AdminPageController::class, 'page'])->defaults('page', $page)->name("admin.{$page}");
         }
 
-        // Global settings: Storage | Connections | Upwork tabs.
+        // Global settings (file storage) and platform connections (Upwork OAuth, Claude key).
         Route::get('/settings', [AdminPageController::class, 'page'])->defaults('page', 'settings')
             ->middleware('can:manage-platform-settings')->name('admin.settings');
-        Route::redirect('/settings/storage', '/admin/settings?tab=storage')->name('admin.settings.storage');
+        Route::redirect('/settings/storage', '/admin/settings')->name('admin.settings.storage');
+        Route::get('/connections', [AdminPageController::class, 'page'])->defaults('page', 'connections')
+            ->middleware('can:manage-platform-settings')->name('admin.connections');
 
         // Upwork proposal automation (Super Admin only, no workspace).
         Route::middleware('can:manage-upwork')->group(function (): void {
             Route::redirect('/upwork', '/admin/upwork/overview');
             Route::get('/upwork/{page}', [UpworkPageController::class, 'page'])
-                ->whereIn('page', ['overview', 'review', 'proposals', 'jobs'])
+                ->whereIn('page', ['overview', 'review', 'proposals', 'jobs', 'configuration'])
                 ->name('admin.upwork.page');
 
             Route::prefix('/api/upwork')->name('admin.api.upwork.')->group(function (): void {

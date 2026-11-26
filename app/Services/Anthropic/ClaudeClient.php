@@ -57,7 +57,7 @@ class ClaudeClient
         $apiKey = $integration->isConnected() ? ($integration->credentials['api_key'] ?? null) : null;
 
         if (blank($apiKey)) {
-            throw new ClaudeException(ClaudeException::NOT_CONFIGURED, 'Claude is not connected. Add the API key in Settings > Connections.');
+            throw new ClaudeException(ClaudeException::NOT_CONFIGURED, 'Claude is not connected. Add the API key in Connections.');
         }
 
         if ($this->budgetRemaining() <= 0) {

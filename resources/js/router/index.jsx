@@ -5,8 +5,10 @@ import AdminDashboard from '@/pages/admin/Dashboard';
 import AdminDocuments from '@/pages/admin/Documents';
 import AdminIntegrations from '@/pages/admin/Integrations';
 import AdminMcp from '@/pages/admin/Mcp';
+import AdminConnections from '@/pages/admin/connections/Index';
 import AdminSettings from '@/pages/admin/settings/Index';
 import AdminSystem from '@/pages/admin/System';
+import UpworkConfiguration from '@/pages/admin/upwork/Configuration';
 import UpworkJobs from '@/pages/admin/upwork/Jobs';
 import UpworkOverview from '@/pages/admin/upwork/Overview';
 import UpworkProposals from '@/pages/admin/upwork/Proposals';
@@ -68,10 +70,12 @@ const ADMIN_PAGES = {
     activity: AdminActivity,
     system: AdminSystem,
     settings: AdminSettings,
+    connections: AdminConnections,
     'upwork-overview': UpworkOverview,
     'upwork-review': UpworkReview,
     'upwork-proposals': UpworkProposals,
     'upwork-jobs': UpworkJobs,
+    'upwork-configuration': UpworkConfiguration,
     profile: AdminProfile,
 };
 
@@ -119,6 +123,7 @@ function titleFor(page, section, pageData) {
         'upwork-review': 'Upwork review',
         'upwork-proposals': 'Upwork proposals',
         'upwork-jobs': 'Upwork jobs',
+        'upwork-configuration': 'Upwork configuration',
     };
 
     if (section === 'admin' && page === 'dashboard') return 'Platform dashboard';

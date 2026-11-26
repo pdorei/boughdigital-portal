@@ -29,7 +29,7 @@ class UpworkOverviewController extends Controller
         $this->authorize('manage-upwork');
 
         if (! $integrations->get(PlatformIntegrationProvider::Upwork)->isConnected()) {
-            throw ValidationException::withMessages(['upwork' => 'Connect Upwork in Settings > Connections first.']);
+            throw ValidationException::withMessages(['upwork' => 'Connect Upwork in Connections first.']);
         }
 
         DiscoverUpworkJobs::dispatch('manual');

@@ -59,6 +59,8 @@ class UpworkSecurityTest extends TestCase
             ['get', '/admin/upwork/proposals'],
             ['get', '/admin/upwork/jobs'],
             ['get', '/admin/settings'],
+            ['get', '/admin/connections'],
+            ['get', '/admin/upwork/configuration'],
             ['get', '/admin/upwork/oauth/connect'],
             ['get', '/admin/upwork/oauth/callback?state=x&code=y'],
             ['getJson', '/admin/api/upwork/overview'],
@@ -124,6 +126,8 @@ class UpworkSecurityTest extends TestCase
 
         $responses = [
             $this->actingAs($admin)->get('/admin/settings'),
+            $this->actingAs($admin)->get('/admin/connections'),
+            $this->actingAs($admin)->get('/admin/upwork/configuration'),
             $this->actingAs($admin)->get('/admin/upwork/overview'),
             $this->actingAs($admin)->getJson('/admin/api/connections'),
             $this->actingAs($admin)->getJson('/admin/api/settings/upwork'),

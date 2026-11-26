@@ -15,7 +15,7 @@ use Illuminate\Support\Str;
  */
 class UpworkOAuthController extends Controller
 {
-    private const RETURN_TO = '/admin/settings?tab=connections';
+    private const RETURN_TO = '/admin/connections';
 
     public function __construct(private UpworkOAuthService $oauth) {}
 

@@ -63,11 +63,11 @@ export default function UpworkOverview() {
     const { stats, automation } = data;
     const warnings = [
         automation.driver === 'fake' ? { tone: 'info', text: 'Fixture mode: jobs come from local test data and no Upwork API calls are made.' } : null,
-        !automation.upwork_connected ? { tone: 'warning', text: 'Upwork is not connected. Connect it in Settings > Connections.', href: '/admin/settings?tab=connections' } : null,
-        !automation.claude_connected ? { tone: 'warning', text: 'Claude is not connected, so new jobs go to review without a fit score.', href: '/admin/settings?tab=connections' } : null,
+        !automation.upwork_connected ? { tone: 'warning', text: 'Upwork is not connected.', href: '/admin/connections', link: 'Open Connections' } : null,
+        !automation.claude_connected ? { tone: 'warning', text: 'Claude is not connected, so new jobs go to review without a fit score.', href: '/admin/connections', link: 'Open Connections' } : null,
         automation.claude_connected && automation.claude_budget_remaining_usd !== null && automation.claude_budget_remaining_usd <= 0 ? { tone: 'warning', text: 'The monthly Claude cap has been reached. Fit checks and drafts are paused.' } : null,
         automation.connects_blocked ? { tone: 'warning', text: `${automation.connects_blocked} New proposals are not being drafted.` } : null,
-        !automation.enabled ? { tone: 'info', text: 'Automatic runs are off. Turn them on in Settings > Upwork.', href: '/admin/settings?tab=upwork' } : null,
+        !automation.enabled ? { tone: 'info', text: 'Automatic runs are off.', href: '/admin/upwork/configuration', link: 'Open Configuration' } : null,
     ].filter(Boolean);
 
     return (
@@ -89,7 +89,7 @@ export default function UpworkOverview() {
             {runError ? <Toast message={runError} tone="error" /> : null}
             {warnings.map((warning) => (
                 <div key={warning.text} className={`notice notice-${warning.tone}`}>
-                    {warning.text} {warning.href ? <a className="strong-link" href={warning.href}>Open settings</a> : null}
+                    {warning.text} {warning.href ? <a className="strong-link" href={warning.href}>{warning.link}</a> : null}
                 </div>
             ))}
 

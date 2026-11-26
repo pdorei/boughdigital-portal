@@ -14,6 +14,10 @@ class UpworkPageController extends PortalPageController
     {
         $this->authorize('manage-upwork');
 
+        if ($page === 'configuration') {
+            $this->authorize('manage-platform-settings');
+        }
+
         return $this->render("upwork-{$page}", 'admin');
     }
 }

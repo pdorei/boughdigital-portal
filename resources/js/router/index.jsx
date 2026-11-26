@@ -5,7 +5,14 @@ import AdminDashboard from '@/pages/admin/Dashboard';
 import AdminDocuments from '@/pages/admin/Documents';
 import AdminIntegrations from '@/pages/admin/Integrations';
 import AdminMcp from '@/pages/admin/Mcp';
+import AdminConnections from '@/pages/admin/connections/Index';
+import AdminSettings from '@/pages/admin/settings/Index';
 import AdminSystem from '@/pages/admin/System';
+import UpworkAutomation from '@/pages/admin/upwork/Automation';
+import UpworkJobs from '@/pages/admin/upwork/Jobs';
+import UpworkOverview from '@/pages/admin/upwork/Overview';
+import UpworkProposals from '@/pages/admin/upwork/Proposals';
+import UpworkReview from '@/pages/admin/upwork/Review';
 import AdminTasks from '@/pages/admin/Tasks';
 import AdminUserCreate from '@/pages/admin/users/Create';
 import AdminUserEdit from '@/pages/admin/users/Edit';
@@ -62,6 +69,13 @@ const ADMIN_PAGES = {
     mcp: AdminMcp,
     activity: AdminActivity,
     system: AdminSystem,
+    settings: AdminSettings,
+    connections: AdminConnections,
+    'upwork-overview': UpworkOverview,
+    'upwork-review': UpworkReview,
+    'upwork-proposals': UpworkProposals,
+    'upwork-jobs': UpworkJobs,
+    'upwork-automation': UpworkAutomation,
     profile: AdminProfile,
 };
 
@@ -105,6 +119,11 @@ function titleFor(page, section, pageData) {
         'team-create': 'Add team member',
         'team-show': pageData.selected_user?.name,
         'team-edit': `Edit ${pageData.selected_user?.name}`,
+        'upwork-overview': 'Upwork overview',
+        'upwork-review': 'Upwork review',
+        'upwork-proposals': 'Upwork proposals',
+        'upwork-jobs': 'Upwork jobs',
+        'upwork-automation': 'Upwork automation',
     };
 
     if (section === 'admin' && page === 'dashboard') return 'Platform dashboard';

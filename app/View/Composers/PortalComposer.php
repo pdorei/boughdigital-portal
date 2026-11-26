@@ -18,12 +18,19 @@ use App\Enums\IntegrationStatus;
 use App\Enums\SearchIntent;
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
+use App\Enums\UpworkJobStatus;
+use App\Enums\UpworkJobType;
+use App\Enums\UpworkProposalStatus;
+use App\Enums\UpworkRunStatus;
+use App\Enums\UpworkSearch;
+use App\Enums\UpworkTrack;
 use App\Enums\UserRole;
 use App\Models\Client;
 use App\Models\Task;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Services\DateTime\DateTimePreferenceService;
+use App\Services\Upwork\UpworkOverviewService;
 use Illuminate\Support\ViewErrorBag;
 use Illuminate\View\View;
 
@@ -50,6 +57,7 @@ class PortalComposer
             'user' => $user ? $this->user($user) : null,
             'workspace' => $workspace ? $this->workspace($workspace) : null,
             'abilities' => $user ? $this->abilities($user, $workspace, $data['section'] ?? null) : [],
+            'navBadges' => $user && ($data['section'] ?? null) === 'admin' && $user->can('manage-upwork') ? $this->adminBadges() : [],
             'options' => $this->options(),
             'datePreferences' => $this->dates->resolveWithSources($user, $workspace),
             'datePreferenceOptions' => $this->dates->options($user, $workspace),
@@ -100,7 +108,11 @@ class PortalComposer
     private function abilities(User $user, ?Workspace $workspace, ?string $section): array
     {
         if ($section === 'admin') {
-            return ['*' => $user->isSuperAdmin()];
+            return [
+                '*' => $user->isSuperAdmin(),
+                'upwork.manage' => $user->can('manage-upwork'),
+                'settings.manage' => $user->can('manage-platform-settings'),
+            ];
         }
 
         if (! $workspace) {
@@ -115,6 +127,18 @@ class PortalComposer
             'settings.update' => $user->can('updateSettings', $workspace),
             'activity.view' => $user->can('viewActivity', $workspace),
         ];
+    }
+
+    /**
+     * Sidebar counts, computed here so React never derives them.
+     *
+     * @return array<string, int>
+     */
+    private function adminBadges(): array
+    {
+        $badges = app(UpworkOverviewService::class)->badges();
+
+        return ['upwork-review' => $badges['review'], 'upwork-proposals' => $badges['proposals']];
     }
 
     private function options(): array
@@ -136,6 +160,12 @@ class PortalComposer
             'article_statuses' => ArticleStatus::options(),
             'article_score_types' => ArticleScoreType::options(),
             'article_score_categories' => ArticleScoreCategory::options(),
+            'upwork_job_statuses' => UpworkJobStatus::options(),
+            'upwork_proposal_statuses' => UpworkProposalStatus::options(),
+            'upwork_tracks' => UpworkTrack::options(),
+            'upwork_job_types' => UpworkJobType::options(),
+            'upwork_searches' => UpworkSearch::options(),
+            'upwork_run_statuses' => UpworkRunStatus::options(),
             'roles' => UserRole::options(),
             'workspace_roles' => array_map(fn (UserRole $role) => ['value' => $role->value, 'label' => $role->label()], UserRole::workspaceRoles()),
         ];

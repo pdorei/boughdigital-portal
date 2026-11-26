@@ -18,16 +18,19 @@ class StorageSettingsTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_super_admin_can_access_system_storage_settings_page(): void
+    public function test_super_admin_can_access_storage_settings_page(): void
     {
         $superAdmin = User::factory()->create(['workspace_id' => null, 'role' => UserRole::SuperAdmin]);
 
         $this->actingAs($superAdmin)
-            ->get('/admin/system')
-            ->assertOk();
+            ->get('/admin/settings')
+            ->assertOk()
+            ->assertSee('storage_settings', false);
+
+        $this->get('/admin/system')->assertOk();
 
         $this->get('/admin/settings/storage')
-            ->assertRedirect('/admin/system');
+            ->assertRedirect('/admin/settings');
     }
 
     public function test_workspace_user_cannot_access_system_storage_settings_page_or_api(): void
@@ -37,6 +40,9 @@ class StorageSettingsTest extends TestCase
 
         $this->actingAs($admin)
             ->get('/admin/system')
+            ->assertForbidden();
+
+        $this->get('/admin/settings')
             ->assertForbidden();
 
         $this->getJson('/admin/api/storage-settings')

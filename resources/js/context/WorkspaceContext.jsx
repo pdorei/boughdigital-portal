@@ -9,6 +9,7 @@ export function WorkspaceProvider({ bootstrap, children }) {
         return {
             datePreferenceOptions: bootstrap.datePreferenceOptions || {},
             datePreferences: bootstrap.datePreferences || {},
+            navBadges: bootstrap.navBadges || {},
             options: bootstrap.options || {},
             page: bootstrap.page || 'welcome',
             pageData: bootstrap.pageData || {},

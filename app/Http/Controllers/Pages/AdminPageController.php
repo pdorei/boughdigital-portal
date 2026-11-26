@@ -38,7 +38,7 @@ class AdminPageController extends PortalPageController
             $pageData += $this->filters();
         }
 
-        if ($page === 'system') {
+        if ($page === 'settings') {
             $pageData['storage_settings'] = app(StorageSettingsService::class)->publicSettings();
         }
 

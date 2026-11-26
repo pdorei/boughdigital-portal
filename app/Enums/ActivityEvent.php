@@ -68,6 +68,16 @@ enum ActivityEvent: string
     case DocumentUpdated = 'document.updated';
     case DocumentDeleted = 'document.deleted';
 
+    case UpworkConnected = 'upwork.connected';
+    case UpworkDisconnected = 'upwork.disconnected';
+    case UpworkSettingsUpdated = 'upwork.settings_updated';
+    case UpworkJobReviewed = 'upwork.job_reviewed';
+    case UpworkProposalApproved = 'upwork.proposal_approved';
+    case UpworkProposalEdited = 'upwork.proposal_edited';
+    case UpworkProposalRejected = 'upwork.proposal_rejected';
+    case UpworkProposalSent = 'upwork.proposal_sent';
+    case PlatformIntegrationUpdated = 'platform_integration.updated';
+
     public function label(): string
     {
         return match ($this) {
@@ -84,6 +94,15 @@ enum ActivityEvent: string
             self::ArticleScored => 'Scored an article',
             self::ClientAiConfigUpdated => 'Updated AI configuration',
             self::ClientAiConfigReset => 'Reset AI configuration',
+            self::UpworkConnected => 'Connected Upwork',
+            self::UpworkDisconnected => 'Disconnected Upwork',
+            self::UpworkSettingsUpdated => 'Updated Upwork settings',
+            self::UpworkJobReviewed => 'Reviewed an Upwork job',
+            self::UpworkProposalApproved => 'Approved an Upwork proposal',
+            self::UpworkProposalEdited => 'Edited an Upwork proposal',
+            self::UpworkProposalRejected => 'Rejected an Upwork proposal',
+            self::UpworkProposalSent => 'Marked an Upwork proposal as sent',
+            self::PlatformIntegrationUpdated => 'Updated a platform connection',
             default => Str::of($this->value)->replace(['.', '_'], ' ')->ucfirst()->toString(),
         };
     }

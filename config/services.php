@@ -35,4 +35,23 @@ return [
         ],
     ],
 
+    /*
+    | Claude (Anthropic) Messages API. The API key is entered in Admin >
+    | Settings > Connections and stored encrypted; it is never read from here.
+    | Prices are USD per million tokens and only estimate the monthly cap.
+    */
+    'anthropic' => [
+        'base_url' => env('ANTHROPIC_BASE_URL', 'https://api.anthropic.com/v1'),
+        'version' => '2026-10-21',
+        'timeout' => 120,
+        'default_model' => 'claude-sonnet-5-5',
+        'default_fit_model' => 'claude-haiku-5-5',
+        'default_monthly_cap_usd' => 50,
+        'models' => [
+            'claude-opus-5-5' => ['label' => 'Claude Opus 5.5', 'input' => 4.00, 'output' => 20.00],
+            'claude-sonnet-5-5' => ['label' => 'Claude Sonnet 5.5', 'input' => 2.00, 'output' => 10.00],
+            'claude-haiku-5-5' => ['label' => 'Claude Haiku 5.5', 'input' => 0.10, 'output' => 0.50],
+        ],
+    ],
+
 ];

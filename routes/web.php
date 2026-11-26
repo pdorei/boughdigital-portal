@@ -1,13 +1,20 @@
 <?php
 
+use App\Http\Controllers\Admin\Api\PlatformConnectionController;
 use App\Http\Controllers\Admin\Api\PlatformController;
 use App\Http\Controllers\Admin\Api\StorageSettingsController;
+use App\Http\Controllers\Admin\Api\Upwork\UpworkJobController;
+use App\Http\Controllers\Admin\Api\Upwork\UpworkOverviewController;
+use App\Http\Controllers\Admin\Api\Upwork\UpworkProposalController;
+use App\Http\Controllers\Admin\Api\UpworkSettingsController;
 use App\Http\Controllers\Admin\Api\UserController as AdminUserController;
 use App\Http\Controllers\Admin\Api\WorkspaceController;
+use App\Http\Controllers\Admin\UpworkOAuthController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Pages\AdminPageController;
+use App\Http\Controllers\Pages\UpworkPageController;
 use App\Http\Controllers\Pages\WorkspacePageController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserDateTimePreferenceController;
@@ -41,8 +48,52 @@ Route::prefix('admin')
             Route::get("/{$page}", [AdminPageController::class, 'page'])->defaults('page', $page)->name("admin.{$page}");
         }
 
-        Route::redirect('/settings', '/admin/system')->name('admin.settings');
-        Route::redirect('/settings/storage', '/admin/system')->name('admin.settings.storage');
+        // Global settings (file storage) and platform connections (Upwork OAuth, Claude key).
+        Route::get('/settings', [AdminPageController::class, 'page'])->defaults('page', 'settings')
+            ->middleware('can:manage-platform-settings')->name('admin.settings');
+        Route::redirect('/settings/storage', '/admin/settings')->name('admin.settings.storage');
+        Route::get('/connections', [AdminPageController::class, 'page'])->defaults('page', 'connections')
+            ->middleware('can:manage-platform-settings')->name('admin.connections');
+
+        // Upwork proposal automation (Super Admin only, no workspace).
+        Route::middleware('can:manage-upwork')->group(function (): void {
+            Route::redirect('/upwork', '/admin/upwork/overview');
+            Route::redirect('/upwork/configuration', '/admin/upwork/automation');
+            Route::get('/upwork/{page}', [UpworkPageController::class, 'page'])
+                ->whereIn('page', ['overview', 'review', 'proposals', 'jobs', 'automation'])
+                ->name('admin.upwork.page');
+
+            Route::prefix('/api/upwork')->name('admin.api.upwork.')->group(function (): void {
+                Route::get('/overview', [UpworkOverviewController::class, 'show'])->name('overview');
+                Route::post('/runs', [UpworkOverviewController::class, 'run'])->middleware('throttle:6,1')->name('runs.store');
+
+                Route::get('/jobs', [UpworkJobController::class, 'index'])->name('jobs.index');
+                Route::get('/jobs/{upworkJob}', [UpworkJobController::class, 'show'])->whereNumber('upworkJob')->name('jobs.show');
+                Route::post('/jobs/{upworkJob}/review', [UpworkJobController::class, 'review'])->whereNumber('upworkJob')->name('jobs.review');
+                Route::post('/jobs/{upworkJob}/send-to-review', [UpworkJobController::class, 'sendToReview'])->whereNumber('upworkJob')->name('jobs.send-to-review');
+                Route::post('/jobs/{upworkJob}/draft-proposal', [UpworkJobController::class, 'draftProposal'])->whereNumber('upworkJob')->name('jobs.draft-proposal');
+
+                Route::get('/proposals', [UpworkProposalController::class, 'index'])->name('proposals.index');
+                Route::get('/proposals/{upworkProposal}', [UpworkProposalController::class, 'show'])->whereNumber('upworkProposal')->name('proposals.show');
+                Route::patch('/proposals/{upworkProposal}', [UpworkProposalController::class, 'update'])->whereNumber('upworkProposal')->name('proposals.update');
+                Route::post('/proposals/{upworkProposal}/approve', [UpworkProposalController::class, 'approve'])->whereNumber('upworkProposal')->name('proposals.approve');
+                Route::post('/proposals/{upworkProposal}/reject', [UpworkProposalController::class, 'reject'])->whereNumber('upworkProposal')->name('proposals.reject');
+                Route::post('/proposals/{upworkProposal}/sent', [UpworkProposalController::class, 'markSent'])->whereNumber('upworkProposal')->name('proposals.sent');
+            });
+        });
+
+        Route::middleware('can:manage-platform-settings')->group(function (): void {
+            Route::get('/upwork/oauth/connect', [UpworkOAuthController::class, 'connect'])->name('admin.upwork.oauth.connect');
+            Route::get('/upwork/oauth/callback', [UpworkOAuthController::class, 'callback'])->name('admin.upwork.oauth.callback');
+
+            Route::get('/api/settings/upwork', [UpworkSettingsController::class, 'show'])->name('admin.api.settings.upwork.show');
+            Route::patch('/api/settings/upwork', [UpworkSettingsController::class, 'update'])->name('admin.api.settings.upwork.update');
+            Route::get('/api/connections', [PlatformConnectionController::class, 'index'])->name('admin.api.connections.index');
+            Route::patch('/api/connections/anthropic', [PlatformConnectionController::class, 'updateAnthropic'])->name('admin.api.connections.anthropic');
+            Route::post('/api/connections/{provider}/disconnect', [PlatformConnectionController::class, 'disconnect'])
+                ->whereIn('provider', ['upwork', 'anthropic'])
+                ->name('admin.api.connections.disconnect');
+        });
 
         Route::get('/workspaces/create', [AdminPageController::class, 'createWorkspace'])->name('admin.workspaces.create');
         Route::get('/workspaces/{workspace}', [AdminPageController::class, 'showWorkspace'])->name('admin.workspaces.show');

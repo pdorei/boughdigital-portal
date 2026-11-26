@@ -22,8 +22,12 @@ use App\Policies\ClientPolicy;
 use App\Policies\ContentCalendarEntryPolicy;
 use App\Policies\ContentPillarPolicy;
 use App\Policies\TaskPolicy;
+use App\Policies\UpworkPolicy;
 use App\Policies\UserPolicy;
 use App\Policies\WorkspacePolicy;
+use App\Services\Upwork\Client\FakeUpworkClient;
+use App\Services\Upwork\Client\GraphqlUpworkClient;
+use App\Services\Upwork\Client\UpworkClient;
 use App\Support\Tenancy\TenantContext;
 use App\View\Composers\PortalComposer;
 use Illuminate\Support\Facades\Gate;
@@ -35,6 +39,11 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->scoped(TenantContext::class, fn () => new TenantContext);
+
+        // The real API is used only when explicitly configured; fixtures otherwise.
+        $this->app->bind(UpworkClient::class, fn ($app) => config('upwork.driver') === 'graphql'
+            ? $app->make(GraphqlUpworkClient::class)
+            : new FakeUpworkClient);
     }
 
     public function boot(): void
@@ -52,5 +61,9 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Article::class, ArticlePolicy::class);
         Gate::policy(Task::class, TaskPolicy::class);
         Gate::policy(User::class, UserPolicy::class);
+
+        // Upwork automation and platform settings are Super Admin only.
+        Gate::define('manage-upwork', [UpworkPolicy::class, 'manage']);
+        Gate::define('manage-platform-settings', [UpworkPolicy::class, 'manageSettings']);
     }
 }

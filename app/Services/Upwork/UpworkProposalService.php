@@ -13,7 +13,10 @@ use App\Models\User;
 use App\Services\Anthropic\ClaudeClient;
 use App\Services\Anthropic\ClaudeException;
 use App\Services\Audit\ActivityLogger;
+use App\Support\Pagination;
 use Carbon\CarbonInterface;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -54,6 +57,30 @@ class UpworkProposalService
         private UpworkPromptBuilder $prompts,
         private ActivityLogger $activity,
     ) {}
+
+    /**
+     * @param  array<string, mixed>  $filters  status (or "open"), page, per_page
+     */
+    public function list(array $filters): LengthAwarePaginator
+    {
+        $status = $filters['status'] ?? 'open';
+
+        $query = UpworkProposal::query()
+            ->with(['job.latestDecision', 'approver:id,name'])
+            ->when($status === 'open', fn (Builder $q) => $q->whereIn('status', [UpworkProposalStatus::Pending, UpworkProposalStatus::Approved]))
+            ->when($status !== 'open' && $status !== 'all', fn (Builder $q) => $q->where('status', $status));
+
+        in_array($status, ['open', UpworkProposalStatus::Pending->value, UpworkProposalStatus::Approved->value], true)
+            ? $query->orderBy('target_send_at')->orderBy('id')
+            : $query->orderByDesc('updated_at')->orderByDesc('id');
+
+        return Pagination::paginate($query, $filters);
+    }
+
+    public function find(int $id): UpworkProposal
+    {
+        return UpworkProposal::query()->with(['job.latestDecision', 'job.decisions', 'approver:id,name'])->findOrFail($id);
+    }
 
     /**
      * Drafts the proposal for an accepted job. Returns null when the rate

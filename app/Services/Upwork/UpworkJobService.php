@@ -12,6 +12,10 @@ use App\Models\UpworkJob;
 use App\Models\UpworkProposal;
 use App\Models\User;
 use App\Services\Audit\ActivityLogger;
+use App\Support\Pagination;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -24,6 +28,38 @@ class UpworkJobService
         private UpworkSettingsService $settings,
         private ActivityLogger $activity,
     ) {}
+
+    /**
+     * @param  array<string, mixed>  $filters  status, track, job_type, date_from, date_to, search, page, per_page
+     */
+    public function list(array $filters): LengthAwarePaginator
+    {
+        $timezone = config('upwork.timezone');
+
+        $query = UpworkJob::query()
+            ->with(['latestDecision', 'proposal:id,upwork_job_id,status'])
+            ->when($filters['status'] ?? null, fn (Builder $q, string $status) => $q->where('status', $status))
+            ->when($filters['track'] ?? null, fn (Builder $q, string $track) => $q->where('track', $track))
+            ->when($filters['job_type'] ?? null, fn (Builder $q, string $type) => $q->where('job_type', $type))
+            ->when($filters['date_from'] ?? null, fn (Builder $q, string $date) => $q->where('first_seen_at', '>=', Carbon::parse($date, $timezone)->startOfDay()->utc()))
+            ->when($filters['date_to'] ?? null, fn (Builder $q, string $date) => $q->where('first_seen_at', '<=', Carbon::parse($date, $timezone)->endOfDay()->utc()))
+            ->when(filled($filters['search'] ?? null), fn (Builder $q) => $q->where(function (Builder $q) use ($filters): void {
+                $term = '%'.str_replace(['%', '_'], ['\\%', '\\_'], trim((string) $filters['search'])).'%';
+                $q->where('title', 'ilike', $term)->orWhere('keyword', 'ilike', $term)->orWhere('upwork_job_id', 'ilike', $term);
+            }));
+
+        // The review queue shows the oldest first, since those expire first.
+        ($filters['status'] ?? null) === UpworkJobStatus::Review->value
+            ? $query->orderByRaw('coalesce(posted_at, first_seen_at) asc')
+            : $query->orderByDesc('first_seen_at')->orderByDesc('id');
+
+        return Pagination::paginate($query, $filters);
+    }
+
+    public function find(int $id): UpworkJob
+    {
+        return UpworkJob::query()->with(['decisions.decider:id,name', 'latestDecision', 'proposal'])->findOrFail($id);
+    }
 
     /**
      * Yes accepts the job and queues a proposal draft; No rejects it.

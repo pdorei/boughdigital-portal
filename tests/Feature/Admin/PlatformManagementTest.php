@@ -22,11 +22,11 @@ class PlatformManagementTest extends TestCase
     {
         $superAdmin = User::factory()->create(['workspace_id' => null, 'role' => UserRole::SuperAdmin]);
 
-        foreach (['/admin/documents', '/admin/tasks', '/admin/clients', '/admin/integrations', '/admin/mcp', '/admin/activity', '/admin/system'] as $path) {
+        foreach (['/admin/documents', '/admin/tasks', '/admin/clients', '/admin/integrations', '/admin/mcp', '/admin/activity', '/admin/system', '/admin/settings'] as $path) {
             $this->actingAs($superAdmin)->get($path)->assertOk();
         }
 
-        $this->actingAs($superAdmin)->get('/admin/settings/storage')->assertRedirect('/admin/system');
+        $this->actingAs($superAdmin)->get('/admin/settings/storage')->assertRedirect('/admin/settings?tab=storage');
     }
 
     public function test_workspace_and_normal_users_cannot_access_super_admin_pages_or_apis(): void

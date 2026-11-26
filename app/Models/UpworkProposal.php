@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * A drafted proposal. It is never submitted automatically: a person approves
  * it, pastes it into Upwork and then marks it as sent.
  */
-#[Fillable(['upwork_job_id', 'bid_type', 'bid_amount', 'cover_letter', 'screening_answers', 'target_send_at', 'expires_at', 'status', 'approved_by', 'approved_at', 'sent_at', 'connects_spent', 'edited', 'rejection_reason'])]
+#[Fillable(['upwork_job_id', 'bid_type', 'bid_amount', 'cover_letter', 'screening_answers', 'quality_flags', 'target_send_at', 'expires_at', 'status', 'approved_by', 'approved_at', 'sent_at', 'connects_spent', 'edited', 'rejection_reason'])]
 class UpworkProposal extends Model
 {
     public function job(): BelongsTo
@@ -32,6 +32,7 @@ class UpworkProposal extends Model
             'status' => UpworkProposalStatus::class,
             'bid_amount' => 'decimal:2',
             'screening_answers' => 'array',
+            'quality_flags' => 'array',
             'target_send_at' => 'datetime',
             'expires_at' => 'datetime',
             'approved_at' => 'datetime',

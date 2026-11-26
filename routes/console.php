@@ -1,9 +1,13 @@
 <?php
 
 use App\Enums\UserRole;
+use App\Jobs\Upwork\DiscoverUpworkJobs;
+use App\Jobs\Upwork\ExpireUpworkItems;
 use App\Models\User;
+use App\Services\Upwork\UpworkJobDiscoveryService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -31,3 +35,16 @@ Artisan::command('bough:create-super-admin {email} {name}', function (string $em
 
     return self::SUCCESS;
 })->purpose('Create or update the first platform-level super admin without hard-coded credentials');
+
+/*
+| Upwork automation. The discovery check runs every minute but only starts a
+| run when automation is on, Upwork is connected and the configured interval
+| has passed since the last run.
+*/
+Schedule::call(function (): void {
+    if (app(UpworkJobDiscoveryService::class)->isDue()) {
+        DiscoverUpworkJobs::dispatch('schedule');
+    }
+})->everyMinute()->name('upwork:discover')->withoutOverlapping();
+
+Schedule::job(new ExpireUpworkItems)->everyFiveMinutes()->name('upwork:expire')->withoutOverlapping();

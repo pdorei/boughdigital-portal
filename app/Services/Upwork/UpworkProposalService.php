@@ -224,6 +224,16 @@ class UpworkProposalService
     {
         $this->ensureStatus($proposal, [UpworkProposalStatus::Pending, UpworkProposalStatus::Approved], 'This proposal can no longer be edited.');
 
+        // jsonb reorders object keys, so compare answers loosely (==) rather than as stored JSON.
+        if (array_key_exists('screening_answers', $data) && $data['screening_answers'] == ($proposal->screening_answers ?? [])) {
+            unset($data['screening_answers']);
+        }
+
+        if (array_key_exists('bid_amount', $data) && $data['bid_amount'] !== null && $proposal->bid_amount !== null
+            && (float) $data['bid_amount'] === (float) $proposal->bid_amount) {
+            unset($data['bid_amount']);
+        }
+
         $proposal->fill(collect($data)->only(['bid_amount', 'cover_letter', 'screening_answers', 'target_send_at'])->all());
         $changed = array_keys($proposal->getDirty());
 

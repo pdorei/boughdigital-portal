@@ -200,8 +200,16 @@ class UpworkSecurityTest extends TestCase
         $this->actingAs($admin)->postJson("/admin/api/upwork/jobs/{$this->job->id}/review", ['decision' => 'no'])
             ->assertOk()->assertJsonPath('data.status', 'rejected');
 
-        $this->actingAs($admin)->patchJson("/admin/api/upwork/proposals/{$this->proposal->id}", ['cover_letter' => 'Edited letter'])
-            ->assertOk()->assertJsonPath('data.edited', true);
+        $this->proposal->update(['screening_answers' => [['question' => 'Q1?', 'answer' => 'A1']]]);
+
+        $this->actingAs($admin)->patchJson("/admin/api/upwork/proposals/{$this->proposal->id}", [
+            'cover_letter' => 'Edited letter',
+            'bid_amount' => 30,
+            'screening_answers' => [['question' => 'Q1?', 'answer' => 'A1']],
+        ])->assertOk()->assertJsonPath('data.edited', true);
+
+        // Unchanged answers and bid are not reported as edited (jsonb reorders keys).
+        $this->assertSame(['cover_letter'], ActivityLog::query()->where('action', 'upwork.proposal_edited')->latest('id')->first()->details['fields']);
 
         $this->actingAs($admin)->postJson("/admin/api/upwork/proposals/{$this->proposal->id}/sent")
             ->assertUnprocessable()->assertJsonValidationErrors('status');

@@ -1,86 +1,315 @@
 [
   {
-    "id": "fx-1", "ciphertext": "~01fixturecontent001",
+    "id": "fx-1",
+    "ciphertext": "~01fixturecontent001",
     "title": "SEO content writer for B2B SaaS blog (ongoing)",
     "description": "We need an experienced SEO content writer to produce 4 long-form blog articles per month for our B2B SaaS product. Keyword research provided. Looking for a long-term partner.",
-    "posted_minutes_ago": 12, "experienceLevel": "EXPERT", "duration": "ONGOING",
-    "amount": {"rawValue": "0", "currency": "USD"},
-    "hourlyBudgetMin": {"rawValue": "35", "currency": "USD"}, "hourlyBudgetMax": {"rawValue": "60", "currency": "USD"},
-    "skills": [{"name": "seo-writing", "prettyName": "SEO Writing"}, {"name": "blog-writing", "prettyName": "Blog Writing"}],
+    "posted_minutes_ago": 12,
+    "experienceLevel": "EXPERT",
+    "duration": "ONGOING",
+    "amount": {
+      "rawValue": "0",
+      "currency": "USD"
+    },
+    "hourlyBudgetMin": {
+      "rawValue": "35",
+      "currency": "USD"
+    },
+    "hourlyBudgetMax": {
+      "rawValue": "60",
+      "currency": "USD"
+    },
+    "skills": [
+      {
+        "name": "seo-writing",
+        "prettyName": "SEO Writing"
+      },
+      {
+        "name": "blog-writing",
+        "prettyName": "Blog Writing"
+      }
+    ],
     "totalApplicants": 8,
-    "client": {"totalHires": 14, "totalPostedJobs": 18, "totalReviews": 11, "totalFeedback": 4.9, "verificationStatus": "VERIFIED", "totalSpent": {"rawValue": "48000", "currency": "USD"}, "location": {"country": "United States"}},
-    "screeningQuestions": ["Share an example of SEO content you have written for a SaaS company.", "How do you approach keyword research?"]
+    "client": {
+      "totalHires": 14,
+      "totalPostedJobs": 18,
+      "totalReviews": 11,
+      "totalFeedback": 4.9,
+      "verificationStatus": "VERIFIED",
+      "totalSpent": {
+        "rawValue": "48000",
+        "currency": "USD"
+      },
+      "location": {
+        "country": "United States"
+      }
+    },
+    "details": {
+      "screeningQuestions": [
+        "Share an example of SEO content you have written for a SaaS company.",
+        "How do you approach keyword research?"
+      ],
+      "paymentVerified": true
+    }
   },
   {
-    "id": "fx-2", "ciphertext": "~01fixturewp002",
+    "id": "fx-2",
+    "ciphertext": "~01fixturewp002",
     "title": "WordPress developer to rebuild agency website in Elementor",
     "description": "Rebuild our 12-page WordPress website in Elementor Pro with a new design from Figma. Must be fast and mobile friendly.",
-    "posted_minutes_ago": 25, "experienceLevel": "INTERMEDIATE", "duration": "MONTH",
-    "amount": {"rawValue": "2500", "currency": "USD"},
-    "skills": [{"name": "wordpress", "prettyName": "WordPress"}, {"name": "elementor", "prettyName": "Elementor"}],
+    "posted_minutes_ago": 25,
+    "experienceLevel": "INTERMEDIATE",
+    "duration": "MONTH",
+    "amount": {
+      "rawValue": "2500",
+      "currency": "USD"
+    },
+    "skills": [
+      {
+        "name": "wordpress",
+        "prettyName": "WordPress"
+      },
+      {
+        "name": "elementor",
+        "prettyName": "Elementor"
+      }
+    ],
     "totalApplicants": 15,
-    "client": {"totalHires": 6, "totalPostedJobs": 9, "totalReviews": 5, "totalFeedback": 4.7, "verificationStatus": "VERIFIED", "totalSpent": {"rawValue": "12000", "currency": "USD"}, "location": {"country": "Australia"}}
+    "client": {
+      "totalHires": 6,
+      "totalPostedJobs": 9,
+      "totalReviews": 5,
+      "totalFeedback": 4.7,
+      "verificationStatus": "VERIFIED",
+      "totalSpent": {
+        "rawValue": "12000",
+        "currency": "USD"
+      },
+      "location": {
+        "country": "Australia"
+      }
+    },
+    "details": {
+      "paymentVerified": true
+    }
   },
   {
-    "id": "fx-3", "ciphertext": "~01fixturelowrate003",
+    "id": "fx-3",
+    "ciphertext": "~01fixturelowrate003",
     "title": "Blog writer needed for travel website",
     "description": "Looking for a blog writer for short travel posts. Cheap rates only.",
-    "posted_minutes_ago": 8, "experienceLevel": "INTERMEDIATE", "duration": "WEEK",
-    "amount": {"rawValue": "0", "currency": "USD"},
-    "hourlyBudgetMin": {"rawValue": "11", "currency": "USD"}, "hourlyBudgetMax": {"rawValue": "18", "currency": "USD"},
-    "skills": [{"name": "blog-writing", "prettyName": "Blog Writing"}],
+    "posted_minutes_ago": 8,
+    "experienceLevel": "INTERMEDIATE",
+    "duration": "WEEK",
+    "amount": {
+      "rawValue": "0",
+      "currency": "USD"
+    },
+    "hourlyBudgetMin": {
+      "rawValue": "11",
+      "currency": "USD"
+    },
+    "hourlyBudgetMax": {
+      "rawValue": "18",
+      "currency": "USD"
+    },
+    "skills": [
+      {
+        "name": "blog-writing",
+        "prettyName": "Blog Writing"
+      }
+    ],
     "totalApplicants": 22,
-    "client": {"totalHires": 1, "totalPostedJobs": 4, "totalReviews": 0, "verificationStatus": "VERIFIED", "location": {"country": "India"}}
+    "client": {
+      "totalHires": 1,
+      "totalPostedJobs": 4,
+      "totalReviews": 0,
+      "verificationStatus": "VERIFIED",
+      "location": {
+        "country": "India"
+      }
+    },
+    "details": {
+      "paymentVerified": true
+    }
   },
   {
-    "id": "fx-4", "ciphertext": "~01fixtureold004",
+    "id": "fx-4",
+    "ciphertext": "~01fixtureold004",
     "title": "Content writer for health clinic website",
     "description": "Write service page copy for a physiotherapy clinic. Content writer with healthcare experience preferred.",
-    "posted_minutes_ago": 240, "experienceLevel": "EXPERT", "duration": "MONTH",
-    "amount": {"rawValue": "1800", "currency": "USD"},
-    "skills": [{"name": "copywriting", "prettyName": "Copywriting"}],
+    "posted_minutes_ago": 240,
+    "experienceLevel": "EXPERT",
+    "duration": "MONTH",
+    "amount": {
+      "rawValue": "1800",
+      "currency": "USD"
+    },
+    "skills": [
+      {
+        "name": "copywriting",
+        "prettyName": "Copywriting"
+      }
+    ],
     "totalApplicants": 12,
-    "client": {"totalHires": 3, "totalPostedJobs": 3, "totalReviews": 2, "totalFeedback": 5.0, "verificationStatus": "VERIFIED", "location": {"country": "Australia"}}
+    "client": {
+      "totalHires": 3,
+      "totalPostedJobs": 3,
+      "totalReviews": 2,
+      "totalFeedback": 5.0,
+      "verificationStatus": "VERIFIED",
+      "location": {
+        "country": "Australia"
+      }
+    },
+    "details": {
+      "paymentVerified": true
+    }
   },
   {
-    "id": "fx-5", "ciphertext": "~01fixturecrowded005",
+    "id": "fx-5",
+    "ciphertext": "~01fixturecrowded005",
     "title": "WooCommerce store setup with WordPress",
     "description": "Set up a WooCommerce store on our WordPress site with 40 products and Stripe payments.",
-    "posted_minutes_ago": 40, "experienceLevel": "EXPERT", "duration": "MONTH",
-    "amount": {"rawValue": "1500", "currency": "USD"},
-    "skills": [{"name": "woocommerce", "prettyName": "WooCommerce"}],
+    "posted_minutes_ago": 40,
+    "experienceLevel": "EXPERT",
+    "duration": "MONTH",
+    "amount": {
+      "rawValue": "1500",
+      "currency": "USD"
+    },
+    "skills": [
+      {
+        "name": "woocommerce",
+        "prettyName": "WooCommerce"
+      }
+    ],
     "totalApplicants": 75,
-    "client": {"totalHires": 2, "totalPostedJobs": 5, "totalReviews": 2, "totalFeedback": 4.5, "verificationStatus": "VERIFIED", "location": {"country": "Canada"}}
+    "client": {
+      "totalHires": 2,
+      "totalPostedJobs": 5,
+      "totalReviews": 2,
+      "totalFeedback": 4.5,
+      "verificationStatus": "VERIFIED",
+      "location": {
+        "country": "Canada"
+      }
+    },
+    "details": {
+      "paymentVerified": true
+    }
   },
   {
-    "id": "fx-6", "ciphertext": "~01fixturenobudget006",
+    "id": "fx-6",
+    "ciphertext": "~01fixturenobudget006",
     "title": "WordPress website for Sydney cafe",
     "description": "Need a simple wordpress website for our cafe in Sydney with an online menu and booking form. Budget to be discussed.",
-    "posted_minutes_ago": 18, "experienceLevel": "INTERMEDIATE", "duration": "WEEK",
-    "amount": {"rawValue": "0", "currency": "AUD"},
-    "skills": [{"name": "wordpress", "prettyName": "WordPress"}],
+    "posted_minutes_ago": 18,
+    "experienceLevel": "INTERMEDIATE",
+    "duration": "WEEK",
+    "amount": {
+      "rawValue": "0",
+      "currency": "AUD"
+    },
+    "skills": [
+      {
+        "name": "wordpress",
+        "prettyName": "WordPress"
+      }
+    ],
     "totalApplicants": 4,
-    "client": {"totalHires": 0, "totalPostedJobs": 1, "totalReviews": 0, "verificationStatus": "UNVERIFIED", "location": {"country": "Australia"}}
+    "client": {
+      "totalHires": 0,
+      "totalPostedJobs": 1,
+      "totalReviews": 0,
+      "verificationStatus": "UNVERIFIED",
+      "location": {
+        "country": "Australia"
+      }
+    },
+    "details": {
+      "paymentVerified": false
+    }
   },
   {
-    "id": "fx-7", "ciphertext": "~01fixturesmall007",
+    "id": "fx-7",
+    "ciphertext": "~01fixturesmall007",
     "title": "Copywriting for 3 landing pages",
     "description": "Short copywriting job for three landing pages.",
-    "posted_minutes_ago": 30, "experienceLevel": "INTERMEDIATE", "duration": "WEEK",
-    "amount": {"rawValue": "300", "currency": "USD"},
-    "skills": [{"name": "copywriting", "prettyName": "Copywriting"}],
+    "posted_minutes_ago": 30,
+    "experienceLevel": "INTERMEDIATE",
+    "duration": "WEEK",
+    "amount": {
+      "rawValue": "300",
+      "currency": "USD"
+    },
+    "skills": [
+      {
+        "name": "copywriting",
+        "prettyName": "Copywriting"
+      }
+    ],
     "totalApplicants": 9,
-    "client": {"totalHires": 5, "totalPostedJobs": 6, "totalReviews": 4, "totalFeedback": 4.8, "verificationStatus": "VERIFIED", "location": {"country": "Australia"}}
+    "client": {
+      "totalHires": 5,
+      "totalPostedJobs": 6,
+      "totalReviews": 4,
+      "totalFeedback": 4.8,
+      "verificationStatus": "VERIFIED",
+      "location": {
+        "country": "Australia"
+      }
+    },
+    "details": {
+      "paymentVerified": true
+    }
   },
   {
-    "id": "fx-8", "ciphertext": "~01fixtureaurate008",
+    "id": "fx-8",
+    "ciphertext": "~01fixtureaurate008",
     "title": "SEO content writing for Melbourne law firm",
     "description": "Australian law firm needs monthly SEO content writing: practice area pages and blog posts. Ongoing work for the right writer.",
-    "posted_minutes_ago": 55, "experienceLevel": "EXPERT", "duration": "QUARTER",
-    "amount": {"rawValue": "0", "currency": "USD"},
-    "hourlyBudgetMin": {"rawValue": "20", "currency": "USD"}, "hourlyBudgetMax": {"rawValue": "28", "currency": "USD"},
-    "skills": [{"name": "seo-writing", "prettyName": "SEO Writing"}, {"name": "legal-writing", "prettyName": "Legal Writing"}],
+    "posted_minutes_ago": 55,
+    "experienceLevel": "EXPERT",
+    "duration": "QUARTER",
+    "amount": {
+      "rawValue": "0",
+      "currency": "USD"
+    },
+    "hourlyBudgetMin": {
+      "rawValue": "20",
+      "currency": "USD"
+    },
+    "hourlyBudgetMax": {
+      "rawValue": "28",
+      "currency": "USD"
+    },
+    "skills": [
+      {
+        "name": "seo-writing",
+        "prettyName": "SEO Writing"
+      },
+      {
+        "name": "legal-writing",
+        "prettyName": "Legal Writing"
+      }
+    ],
     "totalApplicants": 6,
-    "client": {"totalHires": 9, "totalPostedJobs": 10, "totalReviews": 8, "totalFeedback": 4.95, "verificationStatus": "VERIFIED", "totalSpent": {"rawValue": "30000", "currency": "USD"}, "location": {"country": "Australia"}}
+    "client": {
+      "totalHires": 9,
+      "totalPostedJobs": 10,
+      "totalReviews": 8,
+      "totalFeedback": 4.95,
+      "totalSpent": {
+        "rawValue": "30000",
+        "currency": "USD"
+      },
+      "location": {
+        "country": "Australia"
+      }
+    },
+    "details": {
+      "paymentVerified": true
+    }
   }
 ]

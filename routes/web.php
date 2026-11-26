@@ -58,8 +58,9 @@ Route::prefix('admin')
         // Upwork proposal automation (Super Admin only, no workspace).
         Route::middleware('can:manage-upwork')->group(function (): void {
             Route::redirect('/upwork', '/admin/upwork/overview');
+            Route::redirect('/upwork/configuration', '/admin/upwork/automation');
             Route::get('/upwork/{page}', [UpworkPageController::class, 'page'])
-                ->whereIn('page', ['overview', 'review', 'proposals', 'jobs', 'configuration'])
+                ->whereIn('page', ['overview', 'review', 'proposals', 'jobs', 'automation'])
                 ->name('admin.upwork.page');
 
             Route::prefix('/api/upwork')->name('admin.api.upwork.')->group(function (): void {

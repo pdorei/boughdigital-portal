@@ -67,7 +67,7 @@ export default function UpworkOverview() {
         !automation.claude_connected ? { tone: 'warning', text: 'Claude is not connected, so new jobs go to review without a fit score.', href: '/admin/connections', link: 'Open Connections' } : null,
         automation.claude_connected && automation.claude_budget_remaining_usd !== null && automation.claude_budget_remaining_usd <= 0 ? { tone: 'warning', text: 'The monthly Claude cap has been reached. Fit checks and drafts are paused.' } : null,
         automation.connects_blocked ? { tone: 'warning', text: `${automation.connects_blocked} New proposals are not being drafted.` } : null,
-        !automation.enabled ? { tone: 'info', text: 'Automatic runs are off.', href: '/admin/upwork/configuration', link: 'Open Configuration' } : null,
+        !automation.enabled ? { tone: 'info', text: 'Automatic runs are off.', href: '/admin/upwork/automation', link: 'Open Automation' } : null,
     ].filter(Boolean);
 
     return (
@@ -110,7 +110,16 @@ export default function UpworkOverview() {
                             { key: 'started_at', label: 'Started', render: (run) => formatDateTime(run.started_at) },
                             { key: 'status', label: 'Status', render: (run) => <Badge status={run.status}>{statusLabel(options, 'upwork_run_statuses', run.status)}</Badge> },
                             { key: 'trigger', label: 'Trigger', render: (run) => (run.trigger === 'manual' ? 'Manual' : 'Schedule') },
-                            { key: 'api_calls', label: 'API calls' },
+                            {
+                                key: 'api_calls',
+                                label: 'API calls',
+                                render: (run) => <span title={`${run.search_calls} search, ${run.detail_calls} details`}>{run.api_calls} <span className="muted text-sm">({run.search_calls} + {run.detail_calls})</span></span>,
+                            },
+                            {
+                                key: 'search_counts',
+                                label: 'A / B / C',
+                                render: (run) => (run.search_counts ? `${run.search_counts.a ?? 0} / ${run.search_counts.b ?? 0} / ${run.search_counts.c ?? 0}` : '—'),
+                            },
                             { key: 'jobs_found', label: 'Found' },
                             { key: 'jobs_new', label: 'New' },
                             { key: 'claude_tokens_used', label: 'Claude tokens', render: (run) => formatNumber(run.claude_tokens_used) },

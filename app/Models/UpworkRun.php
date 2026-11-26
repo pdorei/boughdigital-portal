@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['status', 'trigger', 'started_at', 'finished_at', 'api_calls', 'jobs_found', 'jobs_new', 'errors', 'claude_tokens_used'])]
+#[Fillable(['status', 'trigger', 'started_at', 'finished_at', 'api_calls', 'search_calls', 'detail_calls', 'jobs_found', 'jobs_new', 'search_matches', 'errors', 'claude_tokens_used'])]
 class UpworkRun extends Model
 {
     public function jobs(): HasMany
@@ -32,6 +32,7 @@ class UpworkRun extends Model
             'started_at' => 'datetime',
             'finished_at' => 'datetime',
             'errors' => 'array',
+            'search_matches' => 'array',
         ];
     }
 }

@@ -23,102 +23,160 @@ class UpworkDiscoveryTest extends TestCase
 
         Http::preventStrayRequests();
         $this->connectUpwork();
+    }
+
+    private function keywords(array $content, array $wordpress = []): void
+    {
         app(UpworkSettingsService::class)->update([
-            'tracks' => ['content' => ['keywords' => ['content writer', 'seo']], 'wordpress' => ['keywords' => ['wordpress']]],
+            'tracks' => ['content' => ['keywords' => $content], 'wordpress' => ['keywords' => $wordpress]],
         ], $this->superAdmin());
     }
 
-    public function test_jobs_are_deduplicated_across_searches_keywords_and_runs(): void
+    public function test_each_keyword_is_searched_once_per_run(): void
     {
-        $client = $this->fakeUpwork([
-            $this->node('a1', ['title' => 'SEO content writer wanted']),
-            $this->node('a2', ['title' => 'WordPress developer', 'description' => 'wordpress build', 'hourlyBudgetMin' => null, 'hourlyBudgetMax' => null, 'amount' => ['rawValue' => '2000']]),
+        // The default settings have 8 keywords (4 per track) and all of A, B and C enabled.
+        $client = $this->fakeUpwork([]);
+
+        $run = app(UpworkJobDiscoveryService::class)->run('test')['run'];
+
+        $this->assertSame(8, $client->searchCalls);
+        $this->assertSame(8, $run->search_calls);
+        $this->assertSame(0, $run->detail_calls);
+        $this->assertSame(8, $run->api_calls);
+        $this->assertCount(8, collect($client->queries)->pluck('keyword')->unique());
+    }
+
+    public function test_a_keyword_listed_under_both_tracks_is_searched_once(): void
+    {
+        $this->keywords(['seo', 'WordPress'], ['wordpress']);
+        $client = $this->fakeUpwork([]);
+
+        app(UpworkJobDiscoveryService::class)->run('test');
+
+        $this->assertSame(2, $client->searchCalls);
+    }
+
+    public function test_searches_a_b_c_are_applied_in_code_and_recorded_on_the_run(): void
+    {
+        $this->keywords(['seo']);
+        $this->fakeUpwork([
+            // A only: fixed $2,000, US client.
+            $this->node('fixed', ['hourlyBudgetMin' => null, 'hourlyBudgetMax' => null, 'amount' => ['rawValue' => '2000']]),
+            // B and C: hourly $30-50, Australian client.
+            $this->node('hourly-au', ['client' => ['location' => ['country' => 'Australia']]]),
+            // C only: fixed $300 from Australia (below A's minimum).
+            $this->node('small-au', ['hourlyBudgetMin' => null, 'hourlyBudgetMax' => null, 'amount' => ['rawValue' => '300'], 'client' => ['location' => ['country' => 'Australia']]]),
+            // None: hourly top $18 from the US, and an entry-level job.
+            $this->node('low', ['hourlyBudgetMin' => ['rawValue' => '10'], 'hourlyBudgetMax' => ['rawValue' => '18']]),
+            $this->node('entry', ['experienceLevel' => 'ENTRY_LEVEL', 'client' => ['location' => ['country' => 'Australia']]]),
         ]);
 
-        $first = app(UpworkJobDiscoveryService::class)->run('test');
+        $run = app(UpworkJobDiscoveryService::class)->run('test')['run'];
 
-        // 3 keywords x 3 searches; a1 matches both content keywords and several searches.
-        $this->assertSame(9, $client->calls);
-        $this->assertSame(9, $first['run']->api_calls);
-        $this->assertSame(2, $first['run']->jobs_new);
-        $this->assertSame(2, UpworkJob::query()->count());
+        $this->assertSame(1, $run->search_calls);
+        $this->assertSame(['a' => 1, 'b' => 1, 'c' => 2], $run->search_matches['counts']);
+        $this->assertSame([
+            '~01fixed' => ['a'],
+            '~01hourly-au' => ['b', 'c'],
+            '~01small-au' => ['c'],
+        ], $run->search_matches['jobs']);
+        $this->assertEqualsCanonicalizing(['~01fixed', '~01hourly-au', '~01small-au'], UpworkJob::query()->pluck('upwork_job_id')->all());
+        $this->assertSame('b', UpworkJob::query()->where('upwork_job_id', '~01hourly-au')->first()->search_key->value);
+    }
 
-        $second = app(UpworkJobDiscoveryService::class)->run('test');
+    public function test_disabled_searches_do_not_match(): void
+    {
+        $this->keywords(['seo']);
+        app(UpworkSettingsService::class)->update(['searches' => ['a' => ['enabled' => false], 'b' => ['enabled' => false]]], $this->superAdmin());
+        $this->fakeUpwork([
+            $this->node('us'),
+            $this->node('au', ['client' => ['location' => ['country' => 'Australia']]]),
+        ]);
 
-        $this->assertSame(0, $second['run']->jobs_new);
-        $this->assertSame(2, $second['run']->jobs_found);
-        $this->assertSame(2, UpworkJob::query()->count());
+        $run = app(UpworkJobDiscoveryService::class)->run('test')['run'];
 
-        $job = UpworkJob::query()->where('upwork_job_id', '~01a1')->first();
-        $this->assertSame('content', $job->track->value);
-        $this->assertSame(UpworkJobStatus::New, $job->status);
-        $this->assertSame($first['run']->id, $job->upwork_run_id);
-        $this->assertSame('https://www.upwork.com/jobs/~01a1', $job->url);
+        $this->assertSame(['~01au'], UpworkJob::query()->pluck('upwork_job_id')->all());
+        $this->assertSame(['a' => 0, 'b' => 0, 'c' => 1], $run->search_matches['counts']);
+    }
+
+    public function test_details_are_fetched_only_for_new_jobs_that_pass_the_hard_rules(): void
+    {
+        $this->keywords(['seo']);
+        $client = $this->fakeUpwork([
+            $this->node('good', ['details' => ['screeningQuestions' => ['Q1?', 'Q2?'], 'paymentVerified' => true]]),
+            $this->node('crowded', ['totalApplicants' => 75]),
+            $this->node('cheap', ['hourlyBudgetMin' => ['rawValue' => '25'], 'hourlyBudgetMax' => ['rawValue' => '26']]),
+        ]);
+        // "cheap" matches search B (top $26 >= $25) but fails the hard rule once the minimum is $27.
+        app(UpworkSettingsService::class)->update(['fit' => ['min_hourly_rate' => 27]], $this->superAdmin());
+
+        $run = app(UpworkJobDiscoveryService::class)->run('test')['run'];
+
+        $this->assertSame(['good'], $client->detailRequests);
+        $this->assertSame(1, $run->detail_calls);
+        $this->assertSame(2, $run->api_calls);
+
+        $good = UpworkJob::query()->where('upwork_job_id', '~01good')->first();
+        $this->assertSame(['Q1?', 'Q2?'], $good->screening_questions);
+        $this->assertTrue($good->client_payment_verified);
+        $this->assertNotNull($good->details_fetched_at);
+        $this->assertNull(UpworkJob::query()->where('upwork_job_id', '~01crowded')->first()->details_fetched_at);
+
+        // A second run finds nothing new, so it makes no details calls.
+        $second = app(UpworkJobDiscoveryService::class)->run('test')['run'];
+        $this->assertSame(0, $second->detail_calls);
+        $this->assertSame(0, $second->jobs_new);
+        $this->assertSame(1, count($client->detailRequests));
     }
 
     public function test_jobs_older_than_the_maximum_age_are_dropped(): void
     {
+        $this->keywords(['seo']);
         $this->fakeUpwork([
             $this->node('fresh', ['posted_minutes_ago' => 30]),
             $this->node('stale', ['posted_minutes_ago' => 91]),
         ]);
 
-        $result = app(UpworkJobDiscoveryService::class)->run('test');
+        $run = app(UpworkJobDiscoveryService::class)->run('test')['run'];
 
-        $this->assertSame(1, $result['run']->jobs_new);
-        $this->assertDatabaseHas('upwork_jobs', ['upwork_job_id' => '~01fresh']);
+        $this->assertSame(1, $run->jobs_new);
+        $this->assertDatabaseHas('upwork_jobs', ['upwork_job_id' => '~01fresh', 'status' => UpworkJobStatus::New->value]);
         $this->assertDatabaseMissing('upwork_jobs', ['upwork_job_id' => '~01stale']);
     }
 
-    public function test_search_filters_the_api_cannot_apply_are_applied_in_code(): void
+    public function test_a_rate_limit_during_search_stops_the_run_without_retrying(): void
     {
-        app(UpworkSettingsService::class)->update([
-            'searches' => ['a' => ['enabled' => false], 'b' => ['enabled' => false], 'c' => ['enabled' => true]],
-        ], $this->superAdmin());
-
-        $client = $this->fakeUpwork([
-            $this->node('au', ['client' => ['location' => ['country' => 'Australia']]]),
-            $this->node('us', ['client' => ['location' => ['country' => 'United States']]]),
-            $this->node('entry', ['experienceLevel' => 'ENTRY_LEVEL', 'client' => ['location' => ['country' => 'Australia']]]),
-        ]);
-
-        app(UpworkJobDiscoveryService::class)->run('test');
-
-        $this->assertSame(3, $client->calls);
-        $this->assertSame(['~01au'], UpworkJob::query()->pluck('upwork_job_id')->all());
-    }
-
-    public function test_search_a_keeps_fixed_jobs_from_1000_and_search_b_hourly_from_25(): void
-    {
-        app(UpworkSettingsService::class)->update([
-            'tracks' => ['content' => ['keywords' => ['seo']], 'wordpress' => ['keywords' => []]],
-            'searches' => ['c' => ['enabled' => false]],
-        ], $this->superAdmin());
-
-        $client = $this->fakeUpwork([
-            $this->node('fixed-ok', ['hourlyBudgetMin' => null, 'hourlyBudgetMax' => null, 'amount' => ['rawValue' => '1000']]),
-            $this->node('fixed-small', ['hourlyBudgetMin' => null, 'hourlyBudgetMax' => null, 'amount' => ['rawValue' => '600']]),
-            $this->node('hourly-ok', ['hourlyBudgetMin' => ['rawValue' => '20'], 'hourlyBudgetMax' => ['rawValue' => '25']]),
-            $this->node('hourly-low', ['hourlyBudgetMin' => ['rawValue' => '10'], 'hourlyBudgetMax' => ['rawValue' => '18']]),
-        ]);
-
-        app(UpworkJobDiscoveryService::class)->run('test');
-
-        $this->assertSame(2, $client->calls);
-        $this->assertEqualsCanonicalizing(['~01fixed-ok', '~01hourly-ok'], UpworkJob::query()->pluck('upwork_job_id')->all());
-    }
-
-    public function test_a_rate_limit_stops_the_run_without_retrying(): void
-    {
+        $this->keywords(['seo', 'content', 'blog']);
         $client = $this->fakeUpwork([$this->node('a1')], rateLimitAfter: 2);
 
-        $result = app(UpworkJobDiscoveryService::class)->run('test');
+        $run = app(UpworkJobDiscoveryService::class)->run('test')['run'];
 
         $this->assertSame(2, $client->calls);
-        $this->assertSame(UpworkRunStatus::RateLimited, $result['run']->status);
-        $this->assertSame(2, $result['run']->api_calls);
-        $this->assertSame('rate_limited', $result['run']->errors[0]['type']);
-        $this->assertNotNull($result['run']->finished_at);
+        $this->assertSame(UpworkRunStatus::RateLimited, $run->status);
+        $this->assertSame(2, $run->search_calls);
+        $this->assertSame(0, $run->detail_calls);
+        $this->assertSame('rate_limited', $run->errors[0]['type']);
+        $this->assertNotNull($run->finished_at);
+    }
+
+    public function test_a_rate_limit_during_details_stops_the_run_without_retrying(): void
+    {
+        $this->keywords(['seo']);
+        // Call 1 is the search, call 2 the first details call (rate limited).
+        $client = $this->fakeUpwork([$this->node('one'), $this->node('two')], rateLimitAfter: 2);
+
+        $result = app(UpworkJobDiscoveryService::class)->run('test');
+        $run = $result['run'];
+
+        $this->assertSame(2, $client->calls);
+        $this->assertCount(1, $client->detailRequests);
+        $this->assertSame(UpworkRunStatus::RateLimited, $run->status);
+        $this->assertSame(1, $run->search_calls);
+        $this->assertSame(1, $run->detail_calls);
+        $this->assertSame(2, $run->api_calls);
+        // Both jobs were stored and are still scored; neither has details.
+        $this->assertCount(2, $result['new_job_ids']);
+        $this->assertSame(0, UpworkJob::query()->whereNotNull('details_fetched_at')->count());
     }
 
     public function test_runs_are_due_only_when_automation_is_on_and_the_interval_has_passed(): void

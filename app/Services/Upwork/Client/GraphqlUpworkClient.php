@@ -2,7 +2,6 @@
 
 namespace App\Services\Upwork\Client;
 
-use App\Enums\UpworkJobType;
 use App\Services\Upwork\UpworkOAuthService;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
@@ -20,6 +19,18 @@ use Illuminate\Support\Str;
  */
 class GraphqlUpworkClient implements UpworkClient
 {
+    /*
+     * Field names follow Upwork's published GraphQL schema. Fields marked
+     * UNVERIFIED have not yet been checked against a live response (no API key
+     * at the time of writing): they appear in a community mirror of the schema
+     * (appspringtechsas/upwork-api-markdown, October 2026) but not in a call we
+     * have made. Every one is parsed null-safely, and a null payment status
+     * sends the job to review, never to skip.
+     *
+     * TODO(upwork-api): once the key is approved, run one search and one
+     * details call, confirm the UNVERIFIED fields return data, and remove the
+     * markers (or the fields) accordingly.
+     */
     public const SEARCH_QUERY = <<<'GRAPHQL'
 query searchJobs(
   $marketPlaceJobFilter: MarketplaceJobPostingsSearchFilter,
@@ -47,14 +58,38 @@ query searchJobs(
         totalApplicants
         client {
           totalHires
-          totalPostedJobs
           totalReviews
-          totalFeedback
-          verificationStatus
           totalSpent { rawValue currency }
           location { country }
+          # UNVERIFIED: verificationStatus, totalPostedJobs, totalFeedback (see TODO above)
+          verificationStatus
+          totalPostedJobs
+          totalFeedback
         }
       }
+    }
+  }
+}
+GRAPHQL;
+
+    /**
+     * UNVERIFIED as a whole (see TODO above): marketplaceJobPosting(id),
+     * contractorSelection.proposalRequirement.screeningQuestions and
+     * clientCompanyPublic.paymentVerification come from the community schema
+     * mirror. It is also unconfirmed whether "id" takes the search result's
+     * id or its ciphertext; the search result's id is sent.
+     */
+    public const DETAILS_QUERY = <<<'GRAPHQL'
+query jobDetails($id: ID!) {
+  marketplaceJobPosting(id: $id) {
+    id
+    contractorSelection {
+      proposalRequirement {
+        screeningQuestions { question sequenceNumber }
+      }
+    }
+    clientCompanyPublic {
+      paymentVerification { status paymentVerified }
     }
   }
 }
@@ -64,14 +99,9 @@ GRAPHQL;
 
     public function searchJobs(UpworkSearchQuery $query): array
     {
-        $filter = ['searchExpression_eq' => $query->keyword];
-
-        if ($query->jobType) {
-            $filter['jobType_eq'] = $query->jobType === UpworkJobType::Hourly ? 'HOURLY' : 'FIXED';
-        }
-
+        // Only the keyword is sent: searches A/B/C are applied in code.
         $data = $this->post(self::SEARCH_QUERY, [
-            'marketPlaceJobFilter' => $filter,
+            'marketPlaceJobFilter' => ['searchExpression_eq' => $query->keyword],
             'searchType' => 'USER_JOBS_SEARCH',
             'sortAttributes' => [['field' => 'RECENCY']],
         ]);
@@ -82,6 +112,34 @@ GRAPHQL;
             ->map(fn (array $node) => UpworkJobData::fromNode($node))
             ->values()
             ->all();
+    }
+
+    public function jobDetails(string $postingId): ?UpworkJobDetails
+    {
+        $posting = data_get($this->post(self::DETAILS_QUERY, ['id' => $postingId]), 'marketplaceJobPosting');
+
+        if (! is_array($posting)) {
+            return null;
+        }
+
+        $questions = collect(data_get($posting, 'contractorSelection.proposalRequirement.screeningQuestions') ?? [])
+            ->filter(fn ($item) => is_array($item) && filled($item['question'] ?? null))
+            ->sortBy(fn (array $item) => $item['sequenceNumber'] ?? PHP_INT_MAX)
+            ->pluck('question')
+            ->map(fn ($question) => trim((string) $question))
+            ->values()
+            ->all();
+
+        $verification = data_get($posting, 'clientCompanyPublic.paymentVerification');
+        $verified = is_array($verification)
+            ? (is_bool($verification['paymentVerified'] ?? null) ? $verification['paymentVerified'] : UpworkJobData::paymentVerified($verification['status'] ?? null))
+            : null;
+
+        return new UpworkJobDetails(
+            screeningQuestions: $questions ?: null,
+            clientPaymentVerified: $verified,
+            raw: $posting,
+        );
     }
 
     /**

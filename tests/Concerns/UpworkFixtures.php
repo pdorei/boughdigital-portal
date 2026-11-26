@@ -76,6 +76,8 @@ trait UpworkFixtures
             'skills' => [['name' => 'seo', 'prettyName' => 'SEO']],
             'totalApplicants' => 5,
             'client' => ['totalHires' => 5, 'totalPostedJobs' => 10, 'totalReviews' => 4, 'totalFeedback' => 4.9, 'verificationStatus' => 'VERIFIED', 'totalSpent' => ['rawValue' => '20000'], 'location' => ['country' => 'United States']],
+            // Returned by the job-details call, not by search (see FakeUpworkClient).
+            'details' => ['paymentVerified' => true],
         ], $overrides);
     }
 

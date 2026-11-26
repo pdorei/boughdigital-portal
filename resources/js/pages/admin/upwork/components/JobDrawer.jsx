@@ -55,6 +55,7 @@ export default function JobDrawer({ jobId, onClose }) {
                             <div><dt>Duration</dt><dd>{job.duration ? statusLabel({}, '', job.duration) : 'Not stated'}</dd></div>
                             <div><dt>Found by</dt><dd>{job.search_key ? `Search ${job.search_key.toUpperCase()}` : 'Unknown'}{job.keyword ? `, "${job.keyword}"` : ''}</dd></div>
                             <div><dt>First seen</dt><dd>{formatDateTime(job.first_seen_at)}</dd></div>
+                            <div><dt>Details fetched</dt><dd>{formatDateTime(job.details_fetched_at, 'No')}</dd></div>
                             <div><dt>Upwork ID</dt><dd className="mono">{job.upwork_job_id}</dd></div>
                             <div><dt>Client reviews</dt><dd>{job.client?.reviews_count ?? 'Unknown'}</dd></div>
                         </dl>

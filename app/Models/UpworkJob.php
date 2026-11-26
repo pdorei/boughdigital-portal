@@ -20,7 +20,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'workspace_id', 'upwork_run_id', 'upwork_job_id', 'title', 'description', 'url', 'track', 'search_key', 'keyword',
     'job_type', 'hourly_min', 'hourly_max', 'fixed_budget', 'experience_level', 'duration', 'skills', 'proposals_count',
     'client_country', 'client_payment_verified', 'client_total_spent', 'client_hire_rate', 'client_rating',
-    'client_reviews_count', 'screening_questions', 'raw', 'posted_at', 'first_seen_at', 'status',
+    'client_reviews_count', 'screening_questions', 'details_fetched_at', 'raw', 'posted_at', 'first_seen_at', 'status',
 ])]
 class UpworkJob extends Model
 {
@@ -71,6 +71,7 @@ class UpworkJob extends Model
             'skills' => 'array',
             'screening_questions' => 'array',
             'raw' => 'array',
+            'details_fetched_at' => 'datetime',
             'posted_at' => 'datetime',
             'first_seen_at' => 'datetime',
         ];

@@ -9,7 +9,8 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Calls the Claude Messages API with the key stored (encrypted) in the
+ * Calls the Claude Messages API with plain requests (no beta headers) and the
+ * key stored (encrypted) in the
  * Anthropic platform integration. Every call records token usage and an
  * estimated USD cost; calls stop once the month's spend reaches the cap.
  * Logs carry model, purpose and token counts only, never prompts or keys.
@@ -79,11 +80,6 @@ class ClaudeClient
             'x-api-key' => $apiKey,
             'anthropic-version' => config('services.anthropic.version'),
         ];
-
-        if (in_array($model, config('services.anthropic.refusal_fallback_models', []), true)) {
-            $headers['anthropic-beta'] = 'server-side-fallback-2026-07-01';
-            $body['fallbacks'] = 'default';
-        }
 
         try {
             $response = Http::withHeaders($headers)

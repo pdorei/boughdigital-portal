@@ -4,7 +4,6 @@ namespace App\Services\Upwork;
 
 use App\Enums\UpworkDecisionOutcome;
 use App\Enums\UpworkDecisionStage;
-use App\Enums\UpworkJobType;
 use App\Models\UpworkJob;
 use App\Models\UpworkJobDecision;
 use App\Services\Anthropic\ClaudeClient;
@@ -40,6 +39,7 @@ class UpworkFitService
         private UpworkSettingsService $settings,
         private ClaudeClient $claude,
         private UpworkPromptBuilder $prompts,
+        private UpworkHardRules $rules,
     ) {}
 
     /**
@@ -51,11 +51,14 @@ class UpworkFitService
     public function evaluate(UpworkJob $job): array
     {
         $settings = $this->settings->settings();
-        $rule = $this->hardRules($job, $settings['fit']);
+        $rules = $this->rules->evaluate($job, $settings['fit']);
 
-        if ($rule !== null) {
-            return ['decision' => $this->decide($job, UpworkDecisionStage::Rules, UpworkDecisionOutcome::Skip, $rule, ruleResult: 'fail'), 'tokens' => 0];
+        if ($rules->skips()) {
+            return ['decision' => $this->decide($job, UpworkDecisionStage::Rules, UpworkDecisionOutcome::Skip, $rules->skipReason, ruleResult: 'fail'), 'tokens' => 0];
         }
+
+        $ruleResult = $rules->needsReview() ? 'review' : 'pass';
+        $ruleNote = $rules->needsReview() ? ' '.implode(' ', $rules->reviewReasons) : '';
 
         try {
             $response = $this->claude->message(
@@ -70,23 +73,28 @@ class UpworkFitService
                 purpose: 'upwork.fit_check',
             );
         } catch (ClaudeException $exception) {
-            return ['decision' => $this->decide($job, UpworkDecisionStage::Fit, UpworkDecisionOutcome::Review, 'Fit check unavailable: '.$exception->getMessage(), ruleResult: 'pass'), 'tokens' => 0];
+            return ['decision' => $this->decide($job, UpworkDecisionStage::Fit, UpworkDecisionOutcome::Review, 'Fit check unavailable: '.$exception->getMessage().$ruleNote, ruleResult: $ruleResult), 'tokens' => 0];
         }
 
         $fit = $this->validate($response->json());
 
         if ($fit === null) {
-            return ['decision' => $this->decide($job, UpworkDecisionStage::Fit, UpworkDecisionOutcome::Review, 'The fit check returned invalid JSON, so the job needs a manual decision.', ruleResult: 'pass', analysis: ['model' => $response->model]), 'tokens' => $response->totalTokens()];
+            return ['decision' => $this->decide($job, UpworkDecisionStage::Fit, UpworkDecisionOutcome::Review, 'The fit check returned invalid JSON, so the job needs a manual decision.'.$ruleNote, ruleResult: $ruleResult, analysis: ['model' => $response->model]), 'tokens' => $response->totalTokens()];
         }
 
         $outcome = $this->outcome($fit['score'], $fit['outcome'], $settings['fit']);
+
+        // An unknown or unverified payment status may lower an accept to review, never to skip.
+        if ($rules->needsReview() && $outcome === UpworkDecisionOutcome::Accept) {
+            $outcome = UpworkDecisionOutcome::Review;
+        }
 
         $decision = $this->decide(
             $job,
             UpworkDecisionStage::Fit,
             $outcome,
-            $fit['reason'],
-            ruleResult: 'pass',
+            $fit['reason'].$ruleNote,
+            ruleResult: $ruleResult,
             score: $fit['score'],
             redFlags: $fit['red_flags'],
             analysis: [
@@ -99,39 +107,6 @@ class UpworkFitService
         );
 
         return ['decision' => $decision, 'tokens' => $response->totalTokens()];
-    }
-
-    /**
-     * Returns the reason a job fails the hard rules, or null when it passes.
-     *
-     * @param  array<string, mixed>  $fit
-     */
-    public function hardRules(UpworkJob $job, array $fit): ?string
-    {
-        $postedAt = $job->posted_at ?? $job->first_seen_at;
-
-        if ($postedAt && $postedAt->lt(now()->subMinutes((int) $fit['max_job_age_minutes']))) {
-            return "Posted more than {$fit['max_job_age_minutes']} minutes ago.";
-        }
-
-        if ($job->proposals_count !== null && $job->proposals_count > (int) $fit['max_proposals']) {
-            return "{$job->proposals_count} proposals already (limit {$fit['max_proposals']}).";
-        }
-
-        if ($job->job_type === UpworkJobType::Hourly) {
-            $top = $job->topHourlyRate();
-
-            if ($top !== null && $top > 0 && $top < (float) $fit['min_hourly_rate']) {
-                return "Top hourly rate \${$top} is below the \${$fit['min_hourly_rate']} minimum.";
-            }
-        }
-
-        if ($job->job_type === UpworkJobType::Fixed && $job->fixed_budget !== null && (float) $job->fixed_budget > 0
-            && (float) $job->fixed_budget < (float) $fit['min_fixed_budget']) {
-            return 'Budget $'.number_format((float) $job->fixed_budget)." is below the \${$fit['min_fixed_budget']} minimum.";
-        }
-
-        return null;
     }
 
     /**

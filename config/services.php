@@ -47,8 +47,6 @@ return [
         'default_model' => 'claude-sonnet-5-5',
         'default_fit_model' => 'claude-haiku-5-5',
         'default_monthly_cap_usd' => 50,
-        // Re-runs a declined request on a fallback model inside the same call.
-        'refusal_fallback_models' => ['claude-opus-5-5', 'claude-sonnet-5-5'],
         'models' => [
             'claude-opus-5-5' => ['label' => 'Claude Opus 5.5', 'input' => 4.00, 'output' => 20.00],
             'claude-sonnet-5-5' => ['label' => 'Claude Sonnet 5.5', 'input' => 2.00, 'output' => 10.00],

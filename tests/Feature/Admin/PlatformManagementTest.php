@@ -22,7 +22,7 @@ class PlatformManagementTest extends TestCase
     {
         $superAdmin = User::factory()->create(['workspace_id' => null, 'role' => UserRole::SuperAdmin]);
 
-        foreach (['/admin/documents', '/admin/tasks', '/admin/clients', '/admin/integrations', '/admin/mcp', '/admin/activity', '/admin/system', '/admin/settings', '/admin/connections', '/admin/upwork/configuration'] as $path) {
+        foreach (['/admin/documents', '/admin/tasks', '/admin/clients', '/admin/integrations', '/admin/mcp', '/admin/activity', '/admin/system', '/admin/settings', '/admin/connections', '/admin/upwork/automation'] as $path) {
             $this->actingAs($superAdmin)->get($path)->assertOk();
         }
 

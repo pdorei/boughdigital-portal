@@ -55,7 +55,6 @@ final readonly class UpworkJobData
         $hires = $client['totalHires'] ?? null;
         $posted = $client['totalPostedJobs'] ?? null;
         $ciphertext = (string) ($node['ciphertext'] ?? $node['id']);
-        $verification = $client['verificationStatus'] ?? null;
 
         return new self(
             upworkJobId: $ciphertext,
@@ -72,12 +71,13 @@ final readonly class UpworkJobData
             skills: array_values(array_filter(Arr::map($node['skills'] ?? [], fn ($skill) => is_array($skill) ? ($skill['prettyName'] ?? $skill['name'] ?? null) : $skill))),
             proposalsCount: isset($node['totalApplicants']) ? (int) $node['totalApplicants'] : null,
             clientCountry: data_get($client, 'location.country'),
-            clientPaymentVerified: $verification === null ? null : strtoupper((string) $verification) === 'VERIFIED',
+            clientPaymentVerified: self::paymentVerified($client['verificationStatus'] ?? null),
             clientTotalSpent: self::money($client['totalSpent'] ?? null),
             clientHireRate: $hires !== null && $posted ? round(min(100, $hires / $posted * 100), 2) : null,
             clientRating: isset($client['totalFeedback']) ? (float) $client['totalFeedback'] : null,
             clientReviewsCount: isset($client['totalReviews']) ? (int) $client['totalReviews'] : null,
-            screeningQuestions: isset($node['screeningQuestions']) ? array_values(array_filter((array) $node['screeningQuestions'])) : null,
+            // Search results carry no screening questions; the job-details call adds them.
+            screeningQuestions: null,
             postedAt: isset($node['publishedDateTime']) ? CarbonImmutable::parse($node['publishedDateTime']) : null,
             raw: $node,
         );
@@ -111,6 +111,24 @@ final readonly class UpworkJobData
             'raw' => $this->raw,
             'posted_at' => $this->postedAt,
         ];
+    }
+
+    /**
+     * VERIFIED is true, a definite "not verified" is false, and anything
+     * unknown (missing field, UNKNOWN, in progress) is null. The hard rules
+     * send null and false to review; neither is ever a reason to skip.
+     */
+    public static function paymentVerified(mixed $status): ?bool
+    {
+        if (is_bool($status)) {
+            return $status;
+        }
+
+        return match (strtoupper((string) $status)) {
+            'VERIFIED' => true,
+            'NOT_VERIFIED', 'ACTIVE_BUT_NOT_VERIFIED' => false,
+            default => null,
+        };
     }
 
     private static function money(mixed $money): ?float

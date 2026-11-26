@@ -10,6 +10,7 @@ use App\Jobs\Upwork\ScoreUpworkJob;
 use App\Models\UpworkJob;
 use App\Models\UpworkProposal;
 use App\Services\Upwork\UpworkFitService;
+use App\Services\Upwork\UpworkHardRules;
 use App\Services\Upwork\UpworkJobDiscoveryService;
 use App\Services\Upwork\UpworkJobService;
 use App\Services\Upwork\UpworkProposalService;
@@ -38,6 +39,8 @@ class UpworkFitAndProposalTest extends TestCase
             'hourly_min' => 30,
             'hourly_max' => 50,
             'proposals_count' => 5,
+            'client_payment_verified' => true,
+            'details_fetched_at' => now(),
             'posted_at' => now()->subMinutes(10),
             'first_seen_at' => now(),
             'status' => UpworkJobStatus::New,
@@ -111,6 +114,58 @@ class UpworkFitAndProposalTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_null_or_unverified_payment_status_goes_to_review_never_skip(): void
+    {
+        $this->connectClaude();
+        $this->fakeClaude($this->fitJson(92), $this->fitJson(92));
+        $rules = app(UpworkHardRules::class);
+        $fit = app(UpworkSettingsService::class)->settings()['fit'];
+
+        $unknown = $this->job(['client_payment_verified' => null]);
+        $unverified = $this->job(['client_payment_verified' => false]);
+
+        foreach ([$unknown, $unverified] as $job) {
+            $result = $rules->evaluate($job, $fit);
+            $this->assertFalse($result->skips());
+            $this->assertTrue($result->needsReview());
+
+            app(UpworkFitService::class)->evaluate($job);
+            $job->refresh();
+
+            // Score 92 would auto-accept; the payment status caps it at review.
+            $this->assertSame(UpworkJobStatus::Review, $job->status);
+            $this->assertSame('review', $job->latestDecision->rule_result);
+            $this->assertSame(92, $job->latestDecision->fit_score);
+            $this->assertStringContainsString('payment', $job->latestDecision->reason);
+        }
+    }
+
+    public function test_null_payment_status_goes_to_review_when_claude_is_unavailable(): void
+    {
+        Http::fake();
+        $job = $this->job(['client_payment_verified' => null]);
+
+        app(UpworkFitService::class)->evaluate($job);
+
+        $this->assertSame(UpworkJobStatus::Review, $job->refresh()->status);
+        Http::assertNothingSent();
+    }
+
+    public function test_claude_requests_are_plain_messages_calls(): void
+    {
+        $this->connectClaude();
+        $this->fakeClaude($this->fitJson(80));
+
+        app(UpworkFitService::class)->evaluate($this->job());
+
+        Http::assertSent(function ($request) {
+            return str_ends_with($request->url(), '/v1/messages')
+                && ! $request->hasHeader('anthropic-beta')
+                && ! array_key_exists('fallbacks', $request->data())
+                && $request->header('anthropic-version') === [config('services.anthropic.version')];
+        });
+    }
+
     public function test_score_cut_offs_decide_and_claude_can_only_be_more_cautious(): void
     {
         $this->connectClaude();
@@ -130,7 +185,7 @@ class UpworkFitAndProposalTest extends TestCase
         $admin = $this->superAdmin();
         $this->connectUpwork();
         $this->connectClaude();
-        $this->fakeUpwork([$this->node('pipe', ['screeningQuestions' => ['How do you research keywords?']])]);
+        $this->fakeUpwork([$this->node('pipe', ['details' => ['screeningQuestions' => ['How do you research keywords?'], 'paymentVerified' => true]])]);
         $this->fakeClaude(
             $this->fitJson(82),
             $this->coverLetter(180)." \u{2014} thanks",

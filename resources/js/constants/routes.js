@@ -53,7 +53,7 @@ export const ADMIN_NAV_ITEMS = [
     { slug: 'upwork/review', label: 'Review', icon: ClipboardCheck, ability: 'upwork.manage', active: ['upwork-review'], badge: 'upwork-review' },
     { slug: 'upwork/proposals', label: 'Proposals', icon: Send, ability: 'upwork.manage', active: ['upwork-proposals'], badge: 'upwork-proposals' },
     { slug: 'upwork/jobs', label: 'Jobs', icon: ListChecks, ability: 'upwork.manage', active: ['upwork-jobs'] },
-    { slug: 'upwork/configuration', label: 'Configuration', icon: Settings2, ability: 'settings.manage', active: ['upwork-configuration'] },
+    { slug: 'upwork/automation', label: 'Automation', icon: Settings2, ability: 'settings.manage', active: ['upwork-automation'] },
     { type: 'section', label: 'Monitoring' },
     { slug: 'activity', label: 'Activity', icon: Activity },
     { type: 'section', label: 'Configuration' },

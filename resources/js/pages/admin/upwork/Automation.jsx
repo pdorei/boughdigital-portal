@@ -1,16 +1,16 @@
 import React from 'react';
 import PageHeader from '@/components/layout/PageHeader';
-import UpworkConfigurationForm from '@/pages/admin/upwork/components/UpworkConfigurationForm';
+import UpworkAutomationForm from '@/pages/admin/upwork/components/UpworkAutomationForm';
 
-export default function UpworkConfiguration() {
+export default function UpworkAutomation() {
     return (
         <div className="page-stack">
             <PageHeader
                 eyebrow="Upwork"
-                title="Configuration"
+                title="Automation"
                 description="Searches, fit rules, bidding and Connects, and the prompts Claude uses. The Upwork and Claude accounts are connected in Connections."
             />
-            <UpworkConfigurationForm />
+            <UpworkAutomationForm />
         </div>
     );
 }

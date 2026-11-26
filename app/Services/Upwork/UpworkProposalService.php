@@ -125,6 +125,10 @@ class UpworkProposalService
             $flags[] = 'No client budget: set the bid before approving.';
         }
 
+        if ($job->details_fetched_at === null) {
+            $flags[] = 'Job details were not fetched, so screening questions may be missing. Check the job on Upwork.';
+        }
+
         if ($blocked = $this->connectsBlockedReason($settings['bidding'])) {
             $this->decide($job, UpworkDecisionStage::System, UpworkDecisionOutcome::Accept, $blocked.' No proposal was drafted.', UpworkJobStatus::Accepted);
 

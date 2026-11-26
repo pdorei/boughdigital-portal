@@ -22,7 +22,7 @@ const LEVELS = [
 const SEARCH_HELP = {
     a: 'Fixed-price jobs from this budget up (covers $1,000 to $4,999 and $5,000+).',
     b: 'Hourly jobs whose top rate is at least this amount. Jobs with no rate stated are kept.',
-    c: 'Clients in these countries, any budget. Filtered in code, since the API does not filter by location.',
+    c: 'Clients in these countries, any budget.',
 };
 
 const PROMPTS = [
@@ -54,7 +54,7 @@ function NumberField({ label, value, onChange, error, icon = Hash, min = 0, step
     );
 }
 
-export default function UpworkConfigurationForm() {
+export default function UpworkAutomationForm() {
     const { options } = useWorkspace();
     const [form, setForm] = useState(null);
     const [loadError, setLoadError] = useState(null);
@@ -142,7 +142,7 @@ export default function UpworkConfigurationForm() {
 
             <Card title="Searches">
                 <div className="card-pad form-stack">
-                    <p className="section-copy">Every keyword is searched each enabled way on every run, newest first. Results are de-duplicated by Upwork job ID.</p>
+                    <p className="section-copy">Each keyword is searched once per run, newest first (one Upwork API call per keyword). Searches A, B and C are then applied to those results here, and a job is kept if it matches any enabled search. New jobs that pass the hard rules get one more call for their details (screening questions, payment verification). Results are de-duplicated by Upwork job ID.</p>
                     <div className="field-grid">
                         {tracks.map((track) => (
                             <TagInput

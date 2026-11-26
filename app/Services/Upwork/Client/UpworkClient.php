@@ -7,11 +7,13 @@ namespace App\Services\Upwork\Client;
  * Upwork's official API (GraphqlUpworkClient) or local fixtures
  * (FakeUpworkClient): no scraping, browser automation or session cookies.
  * There is deliberately no method that submits a proposal.
+ *
+ * Every method call is exactly one API request, so callers can count calls.
  */
 interface UpworkClient
 {
     /**
-     * Searches newest-first. One call to this method is one API request.
+     * Newest jobs for one keyword (one request).
      *
      * @return list<UpworkJobData>
      *
@@ -20,4 +22,13 @@ interface UpworkClient
      * @throws UpworkApiException for any other API failure
      */
     public function searchJobs(UpworkSearchQuery $query): array;
+
+    /**
+     * Details for one job posting (one request): screening questions and the
+     * client information the search result does not carry. Null when the job
+     * is no longer available.
+     *
+     * @throws UpworkRateLimitedException|UpworkAuthenticationException|UpworkApiException
+     */
+    public function jobDetails(string $postingId): ?UpworkJobDetails;
 }

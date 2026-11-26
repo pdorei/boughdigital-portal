@@ -4,7 +4,7 @@ import PageHeader from '@/components/layout/PageHeader';
 import StorageSettingsSection from '@/pages/admin/settings/Storage';
 
 // Connections and Upwork used to be tabs here; keep old bookmarks working.
-const MOVED = { connections: '/admin/connections', upwork: '/admin/upwork/configuration' };
+const MOVED = { connections: '/admin/connections', upwork: '/admin/upwork/automation' };
 
 export default function AdminSettings() {
     const moved = MOVED[new URLSearchParams(window.location.search).get('tab')];

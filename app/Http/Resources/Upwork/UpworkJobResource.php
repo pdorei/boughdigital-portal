@@ -47,6 +47,7 @@ class UpworkJobResource extends JsonResource
                 'reviews_count' => $this->client_reviews_count,
             ],
             'screening_questions' => $this->screening_questions ?? [],
+            'details_fetched_at' => $this->details_fetched_at?->toISOString(),
             'status' => $this->status->value,
             'posted_at' => $this->posted_at?->toISOString(),
             'first_seen_at' => $this->first_seen_at?->toISOString(),
